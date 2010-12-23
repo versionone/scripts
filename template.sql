@@ -19,6 +19,7 @@ set nocount on; begin tran; save tran TX
 
 
 /* script code goes here */
+if @@ERROR<>0 goto ERR	-- check after every modifying statement
 
 
 if (@saveChanges = 1) goto OK
