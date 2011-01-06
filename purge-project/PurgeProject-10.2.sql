@@ -458,6 +458,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Labels purged'
 
 print 'Notes'
+delete NoteInResponseToHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete Note_Now from @doomed where doomed=ID or doomed=AssetID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Note_Now set InResponseToID=null from @doomed where doomed=InResponseToID
@@ -789,6 +791,8 @@ delete IssuePrimaryWorkitems from @doomed where doomed=PrimaryWorkitemID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete RequestPrimaryWorkitems from @doomed where doomed=PrimaryWorkitemID
 select @error=@@ERROR; if @error<>0 goto ERR
+delete PrimaryWorkitemSplitFromHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete PrimaryWorkitem_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update PrimaryWorkitem_Now set SplitFromID=null from @doomed where doomed=SplitFromID
@@ -814,6 +818,10 @@ print 'Workitems'
 delete WorkitemGoals from @doomed where doomed=WorkitemID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete WorkitemOwners from @doomed where doomed=WorkitemID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete WorkitemParentHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete WorkitemSuperHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete Workitem_Now from @doomed where doomed=ID or doomed=ScopeID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
@@ -856,6 +864,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 delete ScopeScopeLabels from @doomed where doomed=ScopeID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete ScopeMemberACL from @doomed where doomed=ScopeID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete ScopeParentHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete Scope_Now from @doomed where doomed=ID or doomed=SchemeID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -1036,11 +1046,6 @@ print 'Deleting blobs'
 delete Blob where ID not in (select distinct Content from Attachment where Content is not NULL)
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' blobs deleted'
-
-
-print 'Rebuilding hieararchies'
-exec [RebuildLineage]
-select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 
 print 'Rebuilding AssetAudit'
 exec [AssetAudit_Rebuild]
