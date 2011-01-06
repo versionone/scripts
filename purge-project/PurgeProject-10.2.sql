@@ -9,7 +9,7 @@
  */
 
 declare @saveChanges bit; --set @saveChanges = 1
-declare @scopeToPurge int; --set @scopeToPurge = 0
+declare @scopeToPurge int; set @scopeToPurge = 1005
 declare @allowRecursion bit; --set @allowRecursion = 1
 
 declare @error int, @rowcount varchar(20)
@@ -37,7 +37,7 @@ if isnull(@allowRecursion,0)<>1  begin
 	if (select COUNT(*) from Scope_Now where ParentID=@scopeToPurge) > 0 begin
 		select AssetType, ID, ParentID from Scope_Now where ParentID=@scopeToPurge
 		select @rowcount=@@ROWCOUNT
-		raiserror('Scope:%i has %i children, so it cannot be purged.  To allow recursion, set @allowRecursion=1',16,3, @scopeToPurge, @rowcount)
+		raiserror('Scope:%i has %s children, so it cannot be purged.  To allow recursion, set @allowRecursion=1',16,3, @scopeToPurge, @rowcount)
 		goto ERR
 	end
 end
@@ -336,18 +336,18 @@ end
 
 -- doom ScopeLabels ever used by doomed Scopes, except those ever used by safe Scopes
 insert @doomed
-select distinct ScopeLabelID from ScopeScopeLabels join @doomed on doom=ScopeID
+select distinct ScopeLabelID from ScopeScopeLabels join @doomed on doomed=ScopeID
 except 
 select distinct ScopeLabelID from ScopeScopeLabels where ScopeID not in (select doomed from @doomed)
 
 -- doom MemberLabels ever used by doomed Members, except those ever used by safe Members
 insert @doomed 
-select distinct MemberLabelID from MemberMemberLabels join @doomed on doom=MemberID
+select distinct MemberLabelID from MemberMemberLabels join @doomed on doomed=MemberID
 except 
 select distinct MemberLabelID from MemberMemberLabels where MemberID not in (select doomed from @doomed)
 
 -- doom Subscriptions of doomed Members
-insert @doomed select ID from Subscription_Now join @doomed on doomed=SubscriberD
+insert @doomed select ID from Subscription_Now join @doomed on doomed=SubscriberID
 -- doom SubscriptionTerms belonging to doomed Subscriptions
 insert @doomed select ID from SubscriptionTerm_Now join @doomed on doomed=SubscriptionID
 
@@ -433,9 +433,9 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Accesses purged'
 
 print 'Subscriptions'
-delete SubscriptionTerm_Now from @doomed where doomed=ID or doomed=SubcriptionID
+delete SubscriptionTerm_Now from @doomed where doomed=ID or doomed=SubscriptionID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete SubscriptionTerm from @doomed where doomed=ID or doomed=SubcriptionID
+delete SubscriptionTerm from @doomed where doomed=ID or doomed=SubscriptionID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' SubscriptionTerms purged'
 delete Subscription_Now from @doomed where doomed=ID or doomed=SubscriberID
@@ -983,7 +983,7 @@ insert @strings select NewQuickValuesFilter from RelationDefinition
 insert @strings select NewValidValuesFilter from RelationDefinition
 insert @strings select QuickValuesFilter from RelationDefinition
 insert @strings select ReverseNewValidValuesFilter from RelationDefinition
-insert @strings select ReverseNewQuickValidValuesFilter from RelationDefinition
+insert @strings select ReverseNewQuickValuesFilter from RelationDefinition
 insert @strings select ReverseQuickValuesFilter from RelationDefinition
 insert @strings select ReverseValidValuesFilter from RelationDefinition
 insert @strings select ValidValuesFilter from RelationDefinition
