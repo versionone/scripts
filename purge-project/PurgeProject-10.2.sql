@@ -83,9 +83,9 @@ select distinct TestSuiteID from Scope join @safeScopes on safeScope=ID where Te
 insert @doomed
 select distinct ID from TestRun_Now join @doomed on doomed=TestSuiteID
 
--- doom all Schedules except those  ever used by safe Scopes
+-- doom all Schedules of doomed Scopes, except those  ever used by safe Scopes
 insert @doomed 
-select ID from Schedule_Now 
+select distinct ScheduleID from Scope join @doomed on doomed=ID where ScheduleID is not null
 except 
 select distinct ScheduleID from Scope join @safeScopes on safeScope=ID where ScheduleID is not null
 
