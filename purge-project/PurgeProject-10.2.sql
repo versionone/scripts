@@ -945,13 +945,15 @@ print 'Rebuilding AssetAudit'
 exec [AssetAudit_Rebuild]
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 
-print 'Rebuilding AssetString'
-exec [AssetString_Populate]
+print 'AssetStrings'
+delete AssetString from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+print @rowcount + ' AssetStrings purged'
 
-print 'Rebuilding AssetLongString'
-exec [AssetLongString_Populate]
+print 'AssetLongStrings'
+delete AssetLongString from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+print @rowcount + ' AssetLongStrings purged'
 
 print 'Rebuilding EffectiveACLs'
 delete dbo.EffectiveACL
@@ -971,7 +973,7 @@ option(maxdop 1) -- see http://connect.microsoft.com/SQLServer/feedback/details/
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 
-if (@saveChanges = 1) goto OK
+if (@saveChanges = 1) begin print 'Committing changes...'; goto OK end
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
 ERR: rollback tran TX
 exec sp_MSForEachTable @command1='enable trigger all on ?'
