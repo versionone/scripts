@@ -9,7 +9,7 @@
  */
 
 declare @saveChanges bit; --set @saveChanges = 1
-declare @scopeToPurge int; set @scopeToPurge = 1005
+declare @scopeToPurge int; --set @scopeToPurge = 0
 declare @allowRecursion bit; --set @allowRecursion = 1
 
 declare @error int, @rowcount varchar(20)
@@ -384,7 +384,7 @@ print @rowcount + ' AssetAuditChangedByLasts purged'
 print 'Audits'
 update Audit set ChangedByID=null from @doomed where doomed=ChangedByID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-print @rowcount + ' Audits purged'
+print @rowcount + ' Audits updated'
 
 print 'Custom Attributes'
 delete CustomBoolean from @doomed where doomed=ID
@@ -698,7 +698,7 @@ update Issue set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Issues purged'
 
-print 'Task'
+print 'Tasks'
 delete Task_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Task_Now set CustomerID=null from @doomed where doomed=CustomerID
@@ -709,7 +709,7 @@ update Task set CustomerID=null from @doomed where doomed=CustomerID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Tasks purged'
 
-print 'Test'
+print 'Tests'
 delete Test_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Test_Now set GeneratedFromID=null from @doomed where doomed=GeneratedFromID
