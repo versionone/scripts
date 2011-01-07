@@ -941,9 +941,10 @@ update BaseAsset set SecurityScopeID=null from @doomed where doomed=SecurityScop
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' BaseAssets purged'
 
-print 'Rebuilding AssetAudit'
-exec [AssetAudit_Rebuild]
+print 'AssetAudits'
+delete AssetAudit from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+print @rowcount + ' AssetAudits purged'
 
 print 'AssetStrings'
 delete AssetString from @doomed where doomed=ID
