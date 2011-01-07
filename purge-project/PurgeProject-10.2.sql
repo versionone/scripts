@@ -49,8 +49,10 @@ end
 declare @doomed table(doomed int not null primary key)
 declare @safeScopes table(safeScope int not null primary key)
 declare @safeMembers table(safeMember int not null primary key)
-insert @safeMembers values(20)
 declare @safeTeams table(safeTeam int not null primary key)
+
+-- NEVER purge Member:20 !
+insert @safeMembers values(20)
 
 -- doom the seed Scope
 insert @doomed values(@scopeToPurge)
@@ -61,6 +63,9 @@ while 1=1 begin
 	except select doomed from @doomed
 	if @@ROWCOUNT=0 break
 end
+
+-- NEVER purge Scope:0 !
+delete @doomed where doomed = 0
 
 -- all other Scopes are safe
 insert @safeScopes 
@@ -83,7 +88,7 @@ select distinct TestSuiteID from Scope join @safeScopes on safeScope=ID where Te
 insert @doomed
 select distinct ID from TestRun_Now join @doomed on doomed=TestSuiteID
 
--- doom all Schedules of doomed Scopes, except those  ever used by safe Scopes
+-- doom all Schedules of doomed Scopes, except those ever used by safe Scopes
 insert @doomed 
 select distinct ScheduleID from Scope join @doomed on doomed=ID where ScheduleID is not null
 except 
@@ -98,11 +103,11 @@ insert @safeMembers
 select distinct OwnerID from Timebox where ID not in (select doomed from @doomed) and ScheduleID not in (select doomed from @doomed) and OwnerID is not null
 except select safeMember from @safeMembers
 
--- doom all Schemes except those ever used by safe Scopes
+-- doom all Schemes of doomed Scopes, except those ever used by safe Scopes
 insert @doomed 
-select ID from Scheme_Now 
+select distinct SchemeID from Scope join @doomed on doomed=ID
 except 
-select distinct SchemeID from Scope join @safeScopes on safeScope=ID where SchemeID is not null
+select distinct SchemeID from Scope join @safeScopes on safeScope=ID
 
 -- doom Goals that live in doomed Scopes
 insert @doomed 
@@ -359,9 +364,6 @@ insert @doomed select ID from IdeasUserCache_Now join @doomed on doomed=MemberID
 
 -- Snapshots?
 insert @doomed select ID from Snapshot_Now join @doomed on doomed=AssetID
-
--- NEVER purge Scope:0 !
-delete @doomed where doomed = 0
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
