@@ -11,6 +11,7 @@
 declare @saveChanges bit; --set @saveChanges = 1
 declare @scopeToPurge int; --set @scopeToPurge = 0
 declare @allowRecursion bit; --set @allowRecursion = 1
+set @allowRecursion = 1; set @scopeToPurge = 114931
 
 declare @error int, @rowcount varchar(20)
 set nocount on; begin tran; save tran TX
@@ -98,9 +99,9 @@ select distinct ScheduleID from Scope join @safeScopes on safeScope=ID where Sch
 insert @doomed 
 select ID from Timebox_Now join @doomed on doomed=ScheduleID
 
--- current/past owners of safe Timeboxes are safe
+-- current owners of safe Timeboxes are safe
 insert @safeMembers 
-select distinct OwnerID from Timebox where ID not in (select doomed from @doomed) and ScheduleID not in (select doomed from @doomed) and OwnerID is not null
+select distinct OwnerID from Timebox_Now where ID not in (select doomed from @doomed) and OwnerID is not null
 except select safeMember from @safeMembers
 
 -- doom all Schemes of doomed Scopes, except those ever used by safe Scopes
@@ -117,69 +118,69 @@ select ID from Goal_Now join @doomed on doomed=ScopeID
 insert @doomed 
 select ID from Issue_Now join @doomed on doomed=ScopeID
 
--- current/past owners of safe Issues are safe
+-- current owners of safe Issues are safe
 insert @safeMembers 
-select distinct OwnerID from Issue join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and OwnerID is not null
+select distinct OwnerID from Issue_Now where ID not in (select doomed from @doomed) and OwnerID is not null
 except select safeMember from @safeMembers
 
--- current/past teams of safe Issues are safe
+-- current teams of safe Issues are safe
 insert @safeTeams 
-select distinct TeamID from Issue join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and TeamID is not null
+select distinct TeamID from Issue_Now where ID not in (select doomed from @doomed) and TeamID is not null
 except select safeTeam from @safeTeams
 
 -- doom Requests that live in doomed Scopes
 insert @doomed 
 select ID from Request_Now join @doomed on doomed=ScopeID
 
--- current/past owners of safe Requests are safe
+-- current owners of safe Requests are safe
 insert @safeMembers 
-select distinct OwnerID from Request join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and OwnerID is not null
+select distinct OwnerID from Request_Now where ID not in (select doomed from @doomed) and OwnerID is not null
 except select safeMember from @safeMembers
 
 -- doom Retrospectives that live in doomed Scopes
 insert @doomed 
 select ID from Retrospective_Now join @doomed on doomed=ScopeID
 
--- current/past facilitators of safe Retrospectives are safe
+-- current facilitators of safe Retrospectives are safe
 insert @safeMembers 
-select distinct FacilitatedByID from Retrospective join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and FacilitatedByID is not null
+select distinct FacilitatedByID from Retrospective_Now where ID not in (select doomed from @doomed) and FacilitatedByID is not null
 except select safeMember from @safeMembers
 
--- current/past teams of safe Retrospectives are safe
+-- current teams of safe Retrospectives are safe
 insert @safeTeams 
-select distinct TeamID from Retrospective join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and TeamID is not null
+select distinct TeamID from Retrospective_Now where ID not in (select doomed from @doomed) and TeamID is not null
 except select safeTeam from @safeTeams
 
 -- doom RegressionTests belonging to doomed Scopes
 insert @doomed 
 select ID from RegressionTest_Now join @doomed on doomed=ScopeID
 
--- current/past Teams of safe RegressionTests are safe
+-- current Teams of safe RegressionTests are safe
 insert @safeTeams 
-select distinct TeamID from RegressionTest join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and TeamID is not null
+select distinct TeamID from RegressionTest_Now where ID not in (select doomed from @doomed) and TeamID is not null
 except select safeTeam from @safeTeams
 
--- current/past owners of safe RegressionTests are safe
+-- current owners of safe RegressionTests are safe
 insert @safeMembers 
-select distinct MemberID from RegressionTestOwners where RegressionTestID not in (select doomed from @doomed)
+select distinct MemberID from RegressionTestOwners where AuditEnd is null and RegressionTestID not in (select doomed from @doomed)
 except select safeMember from @safeMembers
 
 -- doom RegressionPlans belonging to doomed Scopes
 insert @doomed 
 select ID from RegressionPlan_Now join @doomed on doomed=ScopeID
 
--- current/past Owners of safe RegressionPlans are safe
+-- current Owners of safe RegressionPlans are safe
 insert @safeMembers 
-select distinct OwnerID from RegressionPlan join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and OwnerID is not null
+select distinct OwnerID from RegressionPlan_Now where ID not in (select doomed from @doomed) and OwnerID is not null
 except select safeMember from @safeMembers
 
 -- doom RegressionSuites belonging to doomed RegressionPlans
 insert @doomed 
 select ID from RegressionSuite_Now join @doomed on doomed=RegressionPlanID
 
--- current/past Owners of safe RegressionSuites are safe
+-- current Owners of safe RegressionSuites are safe
 insert @safeMembers 
-select distinct OwnerID from RegressionSuite where ID not in (select doomed from @doomed) and RegressionPlanID not in (select doomed from @doomed) and OwnerID is not null
+select distinct OwnerID from RegressionSuite_Now where ID not in (select doomed from @doomed) and OwnerID is not null
 except select safeMember from @safeMembers
 
 -- doom Environments belonging to doomed Scopes
@@ -190,29 +191,29 @@ select ID from Environment_Now join @doomed on doomed=ScopeID
 insert @doomed 
 select ID from Workitem_Now join @doomed on doomed=ScopeID
 
--- current/past teams of safe Workitems are safe
+-- current teams of safe Workitems are safe
 insert @safeTeams 
-select distinct TeamID from Workitem join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and TeamID is not null
+select distinct TeamID from Workitem_Now where ID not in (select doomed from @doomed) and TeamID is not null
 except select safeTeam from @safeTeams
 
--- current/past owners of safe Workitems are safe
+-- current owners of safe Workitems are safe
 insert @safeMembers 
-select distinct MemberID from WorkitemOwners where WorkitemID not in (select doomed from @doomed)
+select distinct MemberID from WorkitemOwners where AuditEnd is null and WorkitemID not in (select doomed from @doomed)
 except select safeMember from @safeMembers
 
--- current/past Customers of safe Themes are safe
+-- current Customers of safe Themes are safe
 insert @safeMembers 
-select distinct CustomerID from Theme where ID not in (select doomed from @doomed) and CustomerID is not null
+select distinct CustomerID from Theme_Now where ID not in (select doomed from @doomed) and CustomerID is not null
 except select safeMember from @safeMembers
 
--- current/past Customers of safe Stories are safe
+-- current Customers of safe Stories are safe
 insert @safeMembers 
-select distinct CustomerID from Story where ID not in (select doomed from @doomed) and CustomerID is not null
+select distinct CustomerID from Story_Now where ID not in (select doomed from @doomed) and CustomerID is not null
 except select safeMember from @safeMembers
 
--- current/past Verifiers of safe Defects are safe
+-- current Verifiers of safe Defects are safe
 insert @safeMembers 
-select distinct VerifiedByID from Defect where ID not in (select doomed from @doomed) and VerifiedByID is not null
+select distinct VerifiedByID from Defect_Now where ID not in (select doomed from @doomed) and VerifiedByID is not null
 except select safeMember from @safeMembers
 
 -- doom TestSets belonging to doomed RegressionSuites
@@ -220,9 +221,9 @@ insert @doomed
 select ID from TestSet_Now join @doomed on doomed=RegressionSuiteID
 except select doomed from @doomed
 
--- current/past Customers of safe Tasks are safe
+-- current Customers of safe Tasks are safe
 insert @safeMembers 
-select distinct CustomerID from Task where ID not in (select doomed from @doomed) and CustomerID is not null
+select distinct CustomerID from Task_Now where ID not in (select doomed from @doomed) and CustomerID is not null
 except select safeMember from @safeMembers
 
 -- doom BuildProjects ever associated with doomed Scopes, except those ever associated with safe Scopes
@@ -249,12 +250,12 @@ select ID from Capacity_Now join @doomed on doomed=TimeboxID
 
 -- Members with safe Capacity are safe
 insert @safeMembers
-select distinct MemberID from Capacity join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and TimeboxID not in (select doomed from @doomed) and MemberID is not null
+select distinct MemberID from Capacity_Now where ID not in (select doomed from @doomed) and MemberID is not null
 except select safeMember from @safeMembers
 
 -- Teams with safe Capacity are safe
 insert @safeTeams
-select distinct TeamID from Capacity join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and TimeboxID not in (select doomed from @doomed) and TeamID is not null
+select distinct TeamID from Capacity_Now where ID not in (select doomed from @doomed) and TeamID is not null
 except select safeTeam from @safeTeams
 
 -- doom Actuals of doomed Scopes or Timeboxes or Workitems
@@ -267,14 +268,13 @@ select ID from Actual_Now join @doomed on doomed=WorkitemID
 
 -- Members with safe Actuals are safe
 insert @safeMembers
-select distinct MemberID from Actual join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and TimeboxID not in (select doomed from @doomed) and WorkitemID not in (select doomed from @doomed) and MemberID is not null
+select distinct MemberID from Actual_Now where ID not in (select doomed from @doomed) and MemberID is not null
 except select safeMember from @safeMembers
 
 -- Teams with safe Actuals are safe
 insert @safeTeams
-select distinct TeamID from Actual join @safeScopes on safeScope=ScopeID where ID not in (select doomed from @doomed) and TimeboxID not in (select doomed from @doomed) and WorkitemID not in (select doomed from @doomed) and TeamID is not null
+select distinct TeamID from Actual_Now where ID not in (select doomed from @doomed) and TeamID is not null
 except select safeTeam from @safeTeams
-
 
 -- doom Teams that are not safe
 insert @doomed
@@ -379,7 +379,8 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' IDs purged'
 
 print 'AssetAuditChangedByLast'
-delete AssetAuditChangedByLast from @doomed where doomed=ID or doomed=ChangedByID
+delete AssetAuditChangedByLast from @doomed where doomed=ID
+delete AssetAuditChangedByLast from @doomed where doomed=ChangedByID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' AssetAuditChangedByLasts purged'
 
@@ -413,36 +414,39 @@ delete Rank from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Ranks purged'
 
-print 'Snapshots'
-delete Snapshot_Now from @doomed where doomed=ID or doomed=AssetID
+delete dbo.EffectiveACL
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete Snapshot from @doomed where doomed=ID or doomed=AssetID
+
+print 'Snapshots'
+delete Snapshot_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete Snapshot from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Snapshots purged'
 
 print 'IdeasUserCache'
-delete IdeasUserCache_Now from @doomed where doomed=ID or doomed=MemberID
+delete IdeasUserCache_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete IdeasUserCache from @doomed where doomed=ID or doomed=MemberID
+delete IdeasUserCache from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' IdeasUserCaches purged'
 
 print 'Accesses'
-delete Access_Now from @doomed where doomed=ID or doomed=ByID
+delete Access_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete Access from @doomed where doomed=ID or doomed=ByID
+delete Access from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Accesses purged'
 
 print 'Subscriptions'
-delete SubscriptionTerm_Now from @doomed where doomed=ID or doomed=SubscriptionID
+delete SubscriptionTerm_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete SubscriptionTerm from @doomed where doomed=ID or doomed=SubscriptionID
+delete SubscriptionTerm from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' SubscriptionTerms purged'
-delete Subscription_Now from @doomed where doomed=ID or doomed=SubscriberID
+delete Subscription_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete Subscription from @doomed where doomed=ID or doomed=SubscriberID
+delete Subscription from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Subscriptions purged'
 
@@ -462,13 +466,13 @@ print @rowcount + ' Labels purged'
 print 'Notes'
 delete NoteInResponseToHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Note_Now from @doomed where doomed=ID or doomed=AssetID
+delete Note_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Note_Now set InResponseToID=null from @doomed where doomed=InResponseToID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Note_Now set PersonalToID=null from @doomed where doomed=PersonalToID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Note from @doomed where doomed=ID or doomed=AssetID or doomed=InResponseToID or doomed=PersonalToID
+delete Note from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Note set InResponseToID=null from @doomed where doomed=InResponseToID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -477,23 +481,23 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Notes purged'
 
 print 'Links'
-delete Link_Now from @doomed where doomed=ID or doomed=AssetID
+delete Link_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete Link from @doomed where doomed=ID or doomed=AssetID
+delete Link from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Links purged'
 
 print 'Attachments'
-delete Attachment_Now from @doomed where doomed=ID or doomed=AssetID
+delete Attachment_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete Attachment from @doomed where doomed=ID or doomed=AssetID
+delete Attachment from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Attachments purged'
 
 print 'MessageReceipts'
-delete MessageReceipt_Now from @doomed where doomed=ID or doomed=RecipientID or doomed=MessageID
+delete MessageReceipt_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete MessageReceipt from @doomed where doomed=ID or doomed=RecipientID or doomed=MessageID
+delete MessageReceipt from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' MessageReceipts purged'
 
@@ -511,13 +515,13 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Messages purged'
 
 print 'Actuals'
-delete Actual_Now from @doomed where doomed=ID or doomed=ScopeID or doomed=WorkitemID or doomed=MemberID
+delete Actual_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Actual_Now set TimeboxID=null from @doomed where doomed=TimeboxID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Actual_Now set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Actual from @doomed where doomed=ID or doomed=ScopeID or doomed=WorkitemID or doomed=MemberID
+delete Actual from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Actual set TimeboxID=null from @doomed where doomed=TimeboxID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -532,9 +536,9 @@ delete BuildRunCompletesPrimaryWorkitems from @doomed where doomed=BuildRunID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete BuildRunFoundDefects from @doomed where doomed=BuildRunID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete BuildRun_Now from @doomed where doomed=ID or doomed=BuildProjectID
+delete BuildRun_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete BuildRun from @doomed where doomed=ID or doomed=BuildProjectID
+delete BuildRun from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' BuildRuns purged'
 
@@ -561,13 +565,13 @@ print @rowcount + ' ChangeSets purged'
 print 'Capacities'
 delete TeamCapacityExcludedMembers from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Capacity_Now from @doomed where doomed=ID or doomed=ScopeID or doomed=TimeboxID
+delete Capacity_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Capacity_Now set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Capacity_Now set MemberID=null from @doomed where doomed=MemberID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Capacity from @doomed where doomed=ID or doomed=ScopeID or doomed=TimeboxID
+delete Capacity from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Capacity set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -576,9 +580,9 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Capacities purged'
 
 print 'TestRuns'
-delete TestRun_Now from @doomed where doomed=ID or doomed=TestSuiteID
+delete TestRun_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete TestRun from @doomed where doomed=ID or doomed=TestSuiteID
+delete TestRun from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' TestRuns purged'
 
@@ -592,11 +596,11 @@ print @rowcount + ' TestSuites purged'
 print 'RegressionSuite'
 delete RegressionSuiteRegressionTests from @doomed where doomed=RegressionSuiteID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete RegressionSuite_Now from @doomed where doomed=ID or doomed=RegressionPlanID
+delete RegressionSuite_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update RegressionSuite_Now set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete RegressionSuite from @doomed where doomed=ID or doomed=RegressionPlanID
+delete RegressionSuite from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update RegressionSuite set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -607,13 +611,13 @@ delete RegressionSuiteRegressionTests from @doomed where doomed=RegressionTestID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete RegressionTestOwners from @doomed where doomed=RegressionTestID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete RegressionTest_Now from @doomed where doomed=ID or doomed=ScopeID
+delete RegressionTest_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update RegressionTest_Now set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 update RegressionTest_Now set GeneratedFromID=null from @doomed where doomed=GeneratedFromID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete RegressionTest from @doomed where doomed=ID or doomed=ScopeID
+delete RegressionTest from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update RegressionTest set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -622,11 +626,11 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' RegressionTests purged'
 
 print 'RegressionPlans'
-delete RegressionPlan_Now from @doomed where doomed=ID or doomed=ScopeID
+delete RegressionPlan_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update RegressionPlan_Now set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete RegressionPlan from @doomed where doomed=ID or doomed=ScopeID
+delete RegressionPlan from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update RegressionPlan set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -637,16 +641,16 @@ delete GoalTargetedBy from @doomed where doomed=GoalID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete WorkitemGoals from @doomed where doomed=GoalID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Goal_Now from @doomed where doomed=ID or doomed=ScopeID
+delete Goal_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete Goal from @doomed where doomed=ID or doomed=ScopeID
+delete Goal from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Goals purged'
 
 print 'Retrospectives'
 delete RetrospectiveIssues from @doomed where doomed=RetrospectiveID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Retrospective_Now from @doomed where doomed=ID or doomed=ScopeID
+delete Retrospective_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Retrospective_Now set FacilitatedByID=null from @doomed where doomed=FacilitatedByID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -654,7 +658,7 @@ update Retrospective_Now set TimeboxID=null from @doomed where doomed=TimeboxID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Retrospective_Now set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Retrospective from @doomed where doomed=ID or doomed=ScopeID
+delete Retrospective from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Retrospective set FacilitatedByID=null from @doomed where doomed=FacilitatedByID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -669,11 +673,11 @@ delete RequestIssues from @doomed where doomed=RequestID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete RequestPrimaryWorkitems from @doomed where doomed=RequestID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Request_Now from @doomed where doomed=ID or doomed=ScopeID
+delete Request_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Request_Now set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Request from @doomed where doomed=ID or doomed=ScopeID
+delete Request from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Request set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -688,13 +692,13 @@ delete RequestIssues from @doomed where doomed=IssueID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete RetrospectiveIssues from @doomed where doomed=IssueID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Issue_Now from @doomed where doomed=ID or doomed=ScopeID
+delete Issue_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Issue_Now set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Issue_Now set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Issue from @doomed where doomed=ID or doomed=ScopeID
+delete Issue from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Issue set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -736,9 +740,9 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' TestSets purged'
 
 print 'Environments'
-delete Environment_Now from @doomed where doomed=ID or doomed=ScopeID
+delete Environment_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete Environment from @doomed where doomed=ID or doomed=ScopeID
+delete Environment from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Environments purged'
 
@@ -825,7 +829,7 @@ delete WorkitemParentHierarchy from @doomed where doomed=AncestorID or doomed=De
 select @error=@@ERROR; if @error<>0 goto ERR
 delete WorkitemSuperHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Workitem_Now from @doomed where doomed=ID or doomed=ScopeID
+delete Workitem_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Workitem_Now set ParentID=null from @doomed where doomed=ParentID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -835,7 +839,7 @@ update Workitem_Now set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Workitem_Now set TimeboxID=null from @doomed where doomed=TimeboxID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Workitem from @doomed where doomed=ID or doomed=ScopeID
+delete Workitem from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Workitem set ParentID=null from @doomed where doomed=ParentID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -848,11 +852,11 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Workitems purged'
 
 print 'Timeboxes'
-delete Timebox_Now from @doomed where doomed=ID or doomed=ScheduleID
+delete Timebox_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Timebox_Now set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Timebox from @doomed where doomed=ID or doomed=ScheduleID
+delete Timebox from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Timebox set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -869,7 +873,7 @@ delete ScopeMemberACL from @doomed where doomed=ScopeID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete ScopeParentHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Scope_Now from @doomed where doomed=ID or doomed=SchemeID
+delete Scope_Now from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Scope_Now set ParentID=null from @doomed where doomed=ParentID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
@@ -879,7 +883,7 @@ update Scope_Now set TestSuiteID=null from @doomed where doomed=TestSuiteID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Scope_Now set ScheduleID=null from @doomed where doomed=ScheduleID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete Scope from @doomed where doomed=ID or doomed=SchemeID
+delete Scope from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Scope set ParentID=null from @doomed where doomed=ParentID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -935,11 +939,7 @@ delete BaseAssetIdeas from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete BaseAsset_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-update BaseAsset_Now set SecurityScopeID=null from @doomed where doomed=SecurityScopeID
-select @error=@@ERROR; if @error<>0 goto ERR
 delete BaseAsset from @doomed where doomed=ID
-select @error=@@ERROR; if @error<>0 goto ERR
-update BaseAsset set SecurityScopeID=null from @doomed where doomed=SecurityScopeID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' BaseAssets purged'
 
@@ -959,9 +959,6 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' AssetLongStrings purged'
 
 print 'Rebuilding EffectiveACLs'
-delete dbo.EffectiveACL
-select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-
 insert dbo.EffectiveACL
 select ScopeID, MemberID, RoleID, RightsMask = RightsMask | case when Owner<>0 then cast(0x200000000 as bigint) else 0 end
 from (
