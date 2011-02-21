@@ -5,15 +5,23 @@
  *		To commit changes, set @saveChanges = 1.
  */
 declare @saveChanges bit; --set @saveChanges = 1
+declare @supportedVersions varchar(1000); select @supportedVersions='10.2.*, 10.3.*, 11.*'
 
 -- Ensure the correct database version
-declare @supportedVersion varchar(10); set @supportedVersion = '10.2'
-if (@supportedVersion is not null) begin
-	if not exists (select * from SystemConfig where Name='Version' and Value like @supportedVersion + '.%') begin
-		raiserror('This script can only run on a %s VersionOne database',16,1, @supportedVersion)
-		goto DONE
+BEGIN
+	declare @sep char(2); select @sep=', '
+	if not exists(select *
+		from dbo.SystemConfig
+		join (
+		select SUBSTRING(@supportedVersions, C.Value+1, CHARINDEX(@sep, @supportedVersions+@sep, C.Value+1)-C.Value-1) as Value
+		from dbo.Counter C
+		where C.Value < DataLength(@supportedVersions) and SUBSTRING(@sep+@supportedVersions, C.Value+1, DataLength(@sep)) = @sep
+		) Version on SystemConfig.Value like REPLACE(Version.Value, '*', '%') and SystemConfig.Name = 'Version'
+	) begin
+			raiserror('Only supported on version(s) %s',16,1, @supportedVersions)
+			goto DONE
 	end
-end
+END
 
 declare @error int, @rowcount varchar(20)
 set nocount on; begin tran; save tran TX
