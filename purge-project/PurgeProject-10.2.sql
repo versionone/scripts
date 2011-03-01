@@ -11,12 +11,11 @@
 declare @saveChanges bit; --set @saveChanges = 1
 declare @scopeToPurge int; --set @scopeToPurge = 0
 declare @allowRecursion bit; --set @allowRecursion = 1
-set @allowRecursion = 1; set @scopeToPurge = 114931
 
 declare @error int, @rowcount varchar(20)
-set nocount on; begin tran; save tran TX
-
+set nocount on; begin tran; 
 exec sp_MSForEachTable @command1='disable trigger all on ?'
+save tran TX
 
 -- Ensure the correct database version
 declare @supportedVersion varchar(10); set @supportedVersion = '10.2'
@@ -379,8 +378,7 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' IDs purged'
 
 print 'AssetAuditChangedByLast'
-delete AssetAuditChangedByLast from @doomed where doomed=ID
-delete AssetAuditChangedByLast from @doomed where doomed=ChangedByID
+delete AssetAuditChangedByLast from @doomed where doomed=ID or doomed=ChangedByID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' AssetAuditChangedByLasts purged'
 
@@ -976,6 +974,7 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 if (@saveChanges = 1) begin print 'Committing changes...'; goto OK end
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
 ERR: rollback tran TX
+OK: 
 exec sp_MSForEachTable @command1='enable trigger all on ?'
-OK: commit
+commit
 print '=== Done ==='
