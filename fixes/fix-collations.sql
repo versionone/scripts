@@ -316,6 +316,8 @@ exec dbo._ForceBinaryCollation 'ChangeSet_Now.AssetType'
 exec dbo._ForceBinaryCollation 'ChangeSet.AssetType'
 exec dbo._ForceBinaryCollation 'Capacity_Now.AssetType'
 exec dbo._ForceBinaryCollation 'Capacity.AssetType'
+exec dbo._ForceBinaryCollation 'Expression.AssetType'
+exec dbo._ForceBinaryCollation 'Image.AssetType'
 
 GO
 
