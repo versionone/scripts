@@ -74,7 +74,7 @@ DECLARE c CURSOR local fast_forward FOR
 				WHEN 'X' THEN 'DROP FUNCTION [' + user_name(UserID) + '].[' + OBJECT_NAME(ID) + ']'
 			END
 	FROM @t
-	WHERE XType IN ('F','C','D','TR','V','FN','IF','TF','P') -- not U, PK, UQ, S, X, or index
+	WHERE XType IN ('PK','F','C','D','TR','V','FN','IF','TF','P') -- not U, UQ, S, X, or index
 	GROUP BY XType,ID,ParentID,UserID
 	ORDER BY MAX(Level) DESC,ID DESC
 
@@ -316,8 +316,12 @@ exec dbo._ForceBinaryCollation 'ChangeSet_Now.AssetType'
 exec dbo._ForceBinaryCollation 'ChangeSet.AssetType'
 exec dbo._ForceBinaryCollation 'Capacity_Now.AssetType'
 exec dbo._ForceBinaryCollation 'Capacity.AssetType'
+exec dbo._ForceBinaryCollation 'Expression_Now.AssetType'
 exec dbo._ForceBinaryCollation 'Expression.AssetType'
+exec dbo._ForceBinaryCollation 'Image_Now.AssetType'
 exec dbo._ForceBinaryCollation 'Image.AssetType'
+exec dbo._ForceBinaryCollation 'Scheme_Now.AssetType'
+exec dbo._ForceBinaryCollation 'Scheme.AssetType'
 
 GO
 
