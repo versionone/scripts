@@ -38,7 +38,20 @@ join (
 --select * from #F
 
 
-create table #T (ID int not null primary key, AuditBegin int not null, Value nvarchar(max))
+create table #N (ID int not null primary key, AssetID int not null, AssetType varchar(100) collate Latin1_General_BIN, Title nvarchar(max), Content nvarchar(max))
+insert #N
+	select N.ID, B.ID, B.AssetType, Name.Value, Content.Value
+	from dbo.Note_Now N
+	join dbo.BaseAsset_Now B on B.ID=N.AssetID
+	join dbo.String Name on Name.ID=N.Name
+	join dbo.LongString Content on Content.ID=N.Content
+	where N.PersonalToID is null and N.AssetState<128
+		and B.AssetType in (select AssetType from #F)
+
+--select * from #N
+
+
+create table #T (ID int not null primary key, AssetType varchar(100) collate Latin1_General_BIN, AuditBegin int not null, Value nvarchar(max))
 declare C cursor local fast_forward for
 	with Author as (
 		select M.ID, Name.Value Name
@@ -55,21 +68,14 @@ declare C cursor local fast_forward for
 			join Audit on Audit.ID=AuditBegin
 			join Author on Author.ID=Audit.ChangedByID
 			where rownum=1
-	),
-	Note as (
-		select N.ID, AssetID, Name.Value Title, Content.Value Content
-		from dbo.Note_Now N
-		join dbo.String Name on Name.ID=Name
-		join dbo.LongString Content on Content.ID=Content
-		where PersonalToID is null and AssetState<128
 	)
-	select AssetID, AuditBegin, Author, DateOf, Title, Content
+	select AssetID, AssetType, AuditBegin, Author, DateOf, Title, Content
 	from OriginalNote
-	join Note on Note.ID=OriginalNote.ID
+	join #N Note on Note.ID=OriginalNote.ID
 	order by OriginalNote.ID
 open C
 while 1=1 begin
-	fetch next from C into @assetID, @auditBegin, @author, @dateOf, @title, @content
+	fetch next from C into @assetID, @assetType, @auditBegin, @author, @dateOf, @title, @content
 	if @@FETCH_STATUS<>0 break
 	
 	declare @header nvarchar(max)
@@ -79,7 +85,7 @@ while 1=1 begin
 	select @note = '<h1>' + REPLACE(REPLACE(@header, '&', '&amp;'), '<', '&lt;') + '</h1>' + @content
 
 	if not exists (select * from #T where ID=@assetID)
-		insert #T select @assetID, @auditBegin, @note
+		insert #T values(@assetID, @assetType, @auditBegin, @note)
 	else
 		update #T set Value=Value + @note where ID=@assetID
 end
@@ -92,13 +98,12 @@ declare @error int, @rowcount varchar(20)
 
 
 declare C cursor local fast_forward for
-	select T.ID, T.AuditBegin, T.Value, B.AssetType
+	select T.ID, T.AssetType, T.AuditBegin, T.Value
 	from #T T
-	join BaseAsset_Now B on B.ID=T.ID
 	
 open C
 while 1=1 begin
-	fetch next from C into @assetID, @auditBegin, @value, @assetType
+	fetch next from C into @assetID, @assetType, @auditBegin, @value
 	if @@FETCH_STATUS<>0 break
 	
 	exec _SaveLongString @value, @longtextID output
@@ -120,4 +125,5 @@ OK: commit
 DONE:
 
 drop table #T
+drop table #N
 drop table #F
