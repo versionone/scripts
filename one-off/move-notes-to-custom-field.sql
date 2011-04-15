@@ -9,13 +9,14 @@
  */
 declare @saveChanges bit; --set @saveChanges = 1
 declare @fields varchar(4000); set @fields = 'PrimaryWorkitem.Custom_Notes,Scope.Custom_Whatever,Timebox.Custom_Blah'
+collate Latin1_General_BIN
 
 set nocount on
 declare @assetID int, @auditBegin int, @author nvarchar(4000), @dateOf datetime, @title nvarchar(4000), @content nvarchar(max), @value nvarchar(max), @longtextID int, @sep char, @assetType varchar(100)
 
 
 select @sep=','
-create table #F(AssetType varchar(100), Definition varchar(100))
+create table #F(AssetType varchar(100) collate Latin1_General_BIN, Definition varchar(100) collate Latin1_General_BIN)
 insert #F
 select Y.AssetType, X.Definition
 from (
