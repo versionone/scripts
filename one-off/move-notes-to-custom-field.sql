@@ -94,7 +94,7 @@ close C deallocate C
 
 
 begin tran; save tran TX
-declare @error int, @rowcount varchar(20)
+declare @error int, @rowcount int, @rowtotal int; select @rowtotal = 0
 
 
 declare C cursor local fast_forward for
@@ -112,9 +112,14 @@ while 1=1 begin
 	select Definition, @assetID, @auditBegin, null, @longtextID
 	from #F
 	where AssetType=@assetType
-	
+
+	select @rowcount=@@ROWCOUNT, @error=@@ERROR
+	if @error<>0 break
+	select @rowtotal = @rowtotal + @rowcount
 end
 close C deallocate C
+if @error<>0 goto ERR
+print cast(@rowtotal as varchar(20)) + ' Note threads converted'
 
 --select * from dbo.CustomLongText
 
