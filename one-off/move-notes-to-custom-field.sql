@@ -2,12 +2,14 @@
  *	Move Notes into a custom rich-text field.
  *	
  *	Set the @fields variable to a comma-delimited list of custom fields to populate.
+ *	Set @allowOverwrite=1 to allow existing values to be changed; otherwise the script bails.
  *	
  *	
  *	NOTE:  This script defaults to rolling back changes.
  *		To commit changes, set @saveChanges = 1.
  */
 declare @saveChanges bit; --set @saveChanges = 1
+declare @allowOverwrite bit; --set @allowOverwrite = 1
 declare @fields varchar(4000); set @fields = 'PrimaryWorkitem.Custom_Notes,Scope.Custom_Whatever,Timebox.Custom_Blah'
 collate Latin1_General_BIN
 
@@ -88,13 +90,13 @@ end
 close C deallocate C
 
 
-if exists (
+if isnull(@allowOverwrite, 0)=0 and exists (
 	select * 
 	from #T T
 	join #F F on T.AssetType=F.AssetType
 	join dbo.CustomLongText C on C.ID=T.ID and C.Definition=F.Definition and C.AuditEnd is null
 ) begin
-	raiserror('Existing custom field values would be overwritten',16,1)
+	raiserror('Existing custom field values would be overwritten. To allow this, set @allowOverwrite=1',16,1)
 	goto DONE
 end
 
@@ -110,6 +112,17 @@ insert dbo.Audit(ChangeDateUTC, ChangeReason, ChangeComment) values(GetUTCDate()
 select @audit=SCOPE_IDENTITY(), @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 
+
+update dbo.CustomLongText
+set AuditEnd=@audit
+from #T T
+join #F F on T.AssetType=F.AssetType
+where CustomLongText.ID=T.ID and CustomLongText.Definition=F.Definition and CustomLongText.AuditEnd is null
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+print cast(@rowcount as varchar(20)) + ' existing custom field values retired'
+
+
 declare C cursor local fast_forward for
 	select T.ID, T.AssetType, T.AuditBegin, T.Value
 	from #T T
@@ -122,7 +135,7 @@ while 1=1 begin
 	exec _SaveLongString @value, @longtextID output
 	
 	insert dbo.CustomLongText 
-	select Definition, @assetID, @auditBegin, null, @longtextID
+	select Definition, @assetID, @audit, null, @longtextID
 	from #F
 	where AssetType=@assetType
 
