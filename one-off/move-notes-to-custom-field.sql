@@ -102,6 +102,13 @@ end
 begin tran; save tran TX
 declare @error int, @rowcount int, @rowtotal int; select @error=0, @rowtotal=0
 
+declare @reason nvarchar(4000), @comment nvarchar(4000), @reasonID int, @commentID int, @audit int
+select @reason=N'move-notes-to-custom-field', @comment = N'Move Notes to custom field(s): ' + @fields
+exec _SaveString @comment, @commentID output
+exec _SaveString @reason, @reasonID output
+insert dbo.Audit(ChangeDateUTC, ChangeReason, ChangeComment) values(GetUTCDate(), @reasonID, @commentID)
+select @audit=SCOPE_IDENTITY(), @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
 
 declare C cursor local fast_forward for
 	select T.ID, T.AssetType, T.AuditBegin, T.Value
@@ -126,6 +133,16 @@ end
 close C deallocate C
 if @error<>0 goto ERR
 print cast(@rowtotal as varchar(20)) + ' Note threads converted'
+
+
+update Expression_Now
+set AuditBegin=@audit, AssetState=255
+from #N N
+where Expression_Now.ID=N.ID and Expression_Now.AssetState<255
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+print cast(@rowcount as varchar(20)) + ' Expressions deleted'
 
 
 if (@saveChanges = 1) goto OK
