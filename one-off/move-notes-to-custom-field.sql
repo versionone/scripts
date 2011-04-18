@@ -35,8 +35,6 @@ join (
 	where AuditEnd is null
 ) Y on Y.BaseType=X.AssetType
 
---select * from #F
-
 
 create table #N (ID int not null primary key, AssetID int not null, AssetType varchar(100) collate Latin1_General_BIN, Title nvarchar(max), Content nvarchar(max))
 insert #N
@@ -47,8 +45,6 @@ insert #N
 	join dbo.LongString Content on Content.ID=N.Content
 	where N.PersonalToID is null and N.AssetState<128
 		and B.AssetType in (select AssetType from #F)
-
---select * from #N
 
 
 create table #T (ID int not null primary key, AssetType varchar(100) collate Latin1_General_BIN, AuditBegin int not null, Value nvarchar(max))
@@ -90,7 +86,6 @@ while 1=1 begin
 		update #T set Value=Value + @note where ID=@assetID
 end
 close C deallocate C
---select * from #T
 
 
 if exists (
@@ -132,7 +127,6 @@ close C deallocate C
 if @error<>0 goto ERR
 print cast(@rowtotal as varchar(20)) + ' Note threads converted'
 
---select * from dbo.CustomLongText
 
 if (@saveChanges = 1) goto OK
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
