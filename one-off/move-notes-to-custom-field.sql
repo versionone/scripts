@@ -93,8 +93,19 @@ close C deallocate C
 --select * from #T
 
 
+if exists (
+	select * 
+	from #T T
+	join #F F on T.AssetType=F.AssetType
+	join dbo.CustomLongText C on C.ID=T.ID and C.Definition=F.Definition and C.AuditEnd is null
+) begin
+	raiserror('Existing custom field values would be overwritten',16,1)
+	goto DONE
+end
+
+
 begin tran; save tran TX
-declare @error int, @rowcount int, @rowtotal int; select @rowtotal = 0
+declare @error int, @rowcount int, @rowtotal int; select @error=0, @rowtotal=0
 
 
 declare C cursor local fast_forward for
