@@ -12,19 +12,20 @@ declare @saveChanges bit; --set @saveChanges = 1
 declare @scopeToPurge int; --set @scopeToPurge = 0
 declare @allowRecursion bit; --set @allowRecursion = 1
 
-declare @error int, @rowcount varchar(20)
-set nocount on; begin tran; 
-exec sp_MSForEachTable @command1='disable trigger all on ?'
-save tran TX
-
 -- Ensure the correct database version
-declare @supportedVersion varchar(10); set @supportedVersion = '10.2'
+declare @supportedVersion varchar(10); set @supportedVersion = '11.0'
 if (@supportedVersion is not null) begin
 	if not exists (select * from SystemConfig where Name='Version' and Value like @supportedVersion + '.%') begin
 		raiserror('This script can only run on a %s VersionOne database',16,1, @supportedVersion)
-		goto ERR
+		goto DONE
 	end
 end
+
+exec sp_MSForEachTable @command1='disable trigger all on ?'
+
+declare @error int, @rowcount varchar(20)
+set nocount on; begin tran; 
+save tran TX
 
 -- Ensure the Scope exists
 if not exists (select * from Scope_Now where ID=@scopeToPurge) begin
@@ -975,6 +976,7 @@ if (@saveChanges = 1) begin print 'Committing changes...'; goto OK end
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
 ERR: rollback tran TX
 OK: 
-exec sp_MSForEachTable @command1='enable trigger all on ?'
 commit
+exec sp_MSForEachTable @command1='enable trigger all on ?'
+DONE:
 print '=== Done ==='
