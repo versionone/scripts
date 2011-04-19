@@ -913,6 +913,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Schedules purged'
 
 print 'Members'
+delete MemberFollowers from @doomed where doomed=MemberID1 or doomed=MemberID2
+select @error=@@ERROR; if @error<>0 goto ERR
 delete MemberMemberLabels from @doomed where doomed=MemberID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete MessageRecipients from @doomed where doomed=MemberID
