@@ -466,6 +466,25 @@ delete Label from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Labels purged'
 
+print 'Expressions'
+delete ExpressionBaseAssets from @doomed where doomed=ExpressionID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete ExpressionMentions from @doomed where doomed=ExpressionID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete Expression_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+update Expression_Now set InReplyToID=null from @doomed where doomed=InReplyToID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Expression_Now set AuthorID=null from @doomed where doomed=AuthorID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete Expression from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Expression set InReplyToID=null from @doomed where doomed=InReplyToID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Expression set AuthorID=null from @doomed where doomed=AuthorID
+select @error=@@ERROR; if @error<>0 goto ERR
+print @rowcount + ' Expressions purged'
+
 print 'Notes'
 delete NoteInResponseToHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -924,6 +943,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Images purged'
 
 print 'Members'
+delete ExpressionMentions from @doomed where doomed=MemberID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete MemberFollowers from @doomed where doomed=MemberID1 or doomed=MemberID2
 select @error=@@ERROR; if @error<>0 goto ERR
 delete MemberMemberLabels from @doomed where doomed=MemberID
@@ -947,6 +968,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Members purged'
 
 print 'BaseAssets'
+delete ExpressionBaseAssets from @doomed where doomed=BaseAssetID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete BaseAssetIdeas from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete BaseAsset_Now from @doomed where doomed=ID
