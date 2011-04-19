@@ -14,7 +14,7 @@ declare @fields varchar(4000); set @fields = 'PrimaryWorkitem.Custom_Notes,Scope
 collate Latin1_General_BIN
 
 set nocount on
-declare @assetID int, @auditBegin int, @author nvarchar(4000), @dateOf datetime, @title nvarchar(4000), @content nvarchar(max), @value nvarchar(max), @longtextID int, @sep char, @assetType varchar(100)
+declare @assetID int, @auditBegin int, @author nvarchar(4000), @dateOf datetime, @title nvarchar(4000), @content nvarchar(max), @category nvarchar(max), @personal bit, @value nvarchar(max), @longtextID int, @sep char, @assetType varchar(100)
 
 
 select @sep=','
@@ -38,14 +38,16 @@ join (
 ) Y on Y.BaseType=X.AssetType
 
 
-create table #N (ID int not null primary key, AssetID int not null, AssetType varchar(100) collate Latin1_General_BIN, Title nvarchar(max), Content nvarchar(max))
+create table #N (ID int not null primary key, AssetID int not null, AssetType varchar(100) collate Latin1_General_BIN not null, Title nvarchar(max) not null, Content nvarchar(max) not null, Category nvarchar(max) null, Personal bit not null)
 insert #N
-	select N.ID, B.ID, B.AssetType, Name.Value, Content.Value
+	select N.ID, B.ID, B.AssetType, Name.Value, Content.Value, CategoryName.Value, N.Personal
 	from dbo.Note_Now N
 	join dbo.BaseAsset_Now B on B.ID=N.AssetID
 	join dbo.String Name on Name.ID=N.Name
 	join dbo.LongString Content on Content.ID=N.Content
-	where N.PersonalToID is null and N.AssetState<128
+	left join dbo.List_Now Category on Category.ID=N.CategoryID
+	left join dbo.String CategoryName on CategoryName.ID=Category.Name
+	where N.AssetState<128
 		and B.AssetType in (select AssetType from #F)
 
 
@@ -67,20 +69,25 @@ declare C cursor local fast_forward for
 			join Author on Author.ID=Audit.ChangedByID
 			where rownum=1
 	)
-	select AssetID, AssetType, AuditBegin, Author, DateOf, Title, Content
+	select AssetID, AssetType, AuditBegin, Author, DateOf, Title, Content, Category, Personal
 	from OriginalNote
 	join #N Note on Note.ID=OriginalNote.ID
 	order by OriginalNote.ID
 open C
 while 1=1 begin
-	fetch next from C into @assetID, @assetType, @auditBegin, @author, @dateOf, @title, @content
+	fetch next from C into @assetID, @assetType, @auditBegin, @author, @dateOf, @title, @content, @category, @personal
 	if @@FETCH_STATUS<>0 break
 	
-	declare @header nvarchar(max)
-	select @header = @title + ' (' + @author + ' on ' + convert(nvarchar(100), @dateOf, 107) + ')'
+	declare @header nvarchar(max), @subheader nvarchar(max)
+	select @header = @title + ' (' + @author + ' on ' + convert(nvarchar(100), @dateOf, 107) + ')', @subheader=''
+	select @header = '<h1>' + REPLACE(REPLACE(@header, '&', '&amp;'), '<', '&lt;') + '</h1>'
+	if (@category is not null or @personal=1) begin
+		select @subheader = ISNULL(@category, '') + case when (@personal=1) then ' (Private)' else '' end
+		select @subheader = '<b>' + REPLACE(REPLACE(@subheader, '&', '&amp;'), '<', '&lt;') + '</b><br/>'
+	end
 	
 	declare @note nvarchar(max)
-	select @note = '<h1>' + REPLACE(REPLACE(@header, '&', '&amp;'), '<', '&lt;') + '</h1>' + @content
+	select @note = @header + @subheader + @content
 
 	if not exists (select * from #T where ID=@assetID)
 		insert #T values(@assetID, @assetType, @auditBegin, @note)
