@@ -477,11 +477,15 @@ update Expression_Now set InReplyToID=null from @doomed where doomed=InReplyToID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Expression_Now set AuthorID=null from @doomed where doomed=AuthorID
 select @error=@@ERROR; if @error<>0 goto ERR
+update Expression_Now set ConversationID=ID from @doomed where doomed=ConversationID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete Expression from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Expression set InReplyToID=null from @doomed where doomed=InReplyToID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Expression set AuthorID=null from @doomed where doomed=AuthorID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Expression set ConversationID=ID from @doomed where doomed=ConversationID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Expressions purged'
 
