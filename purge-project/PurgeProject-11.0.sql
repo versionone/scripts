@@ -291,6 +291,10 @@ insert @doomed
 select distinct MemberID from ScopeMemberACL join @doomed on doomed=ScopeID where RoleID<>0 or Owner<>0
 except select safeMember from @safeMembers
 
+-- doom Images assigned to doomed Members
+insert @doomed
+select distinct ID from Image_Now join @doomed on doomed=MemberID
+
 -- doom BaseAssets that are secured by doomed Scopes
 insert @doomed 
 select ID from BaseAsset_Now join @doomed on doomed=SecurityScopeID
@@ -911,6 +915,13 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 delete Schedule from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Schedules purged'
+
+print 'Images'
+delete Image_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete [Image] from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+print @rowcount + ' Images purged'
 
 print 'Members'
 delete MemberFollowers from @doomed where doomed=MemberID1 or doomed=MemberID2
