@@ -1,7 +1,8 @@
 
 ## This is instructions on how to execute new DBMaint (started using in Prod as of Spring'11)
 
-1. Open MaintenanceSolution.sql and replace [master] with your database name
+1. Open MaintenanceSolution.sql and replace [master] only on the first line after comments with your database name
+e.g. USE [master] => USE [V1Prod] (where V1Prod is your database instance name)
 
 2. Execute MaintenanceSolution.sql as a stored procedure against your target DB.
 It creates dbo.CommandExecute and dbo.IndexOptimize stored procedures required before proceeding to step #3.

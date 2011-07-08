@@ -17,7 +17,7 @@ http://ola.hallengren.com
 
 */
 
-USE V1_DB_Maintence -- <== This is the database that the objects will be created in.
+USE [master] -- <== This is the database that the objects will be created in.
 
 SET NOCOUNT ON
 
