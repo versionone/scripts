@@ -1,12 +1,12 @@
 /*
- *	Reset a user's Login.UserData, which may have been corrupted by a
+ *  Reset a user's Login.UserData, which may have been corrupted by a
  *  race condition when saving bad ESON into the user's space.
  *
  *  NOTE: Be sure to set the @username variable below. This is the
- *	      name they use to log into the system.
+ *        name they use to log into the system.
  *
- *	NOTE:  This script defaults to rolling back changes.
- *		To commit changes, set @saveChanges = 1.
+ *  NOTE: This script defaults to rolling back changes.
+ *        To commit changes, set @saveChanges = 1.
  */
 declare @saveChanges bit; --set @saveChanges = 1
 declare @supportedVersions varchar(1000); select @supportedVersions='10.2.*, 10.3.*, 11.*'
