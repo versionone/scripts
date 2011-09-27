@@ -40,7 +40,7 @@
 			var outputPlace = $('#results')
 
 			var usages = {}
-			var scopesInfo = {}
+			var scopesInfo = {'': {name: ''}}
 			var resultsPending = 0
 
 			++resultsPending
@@ -116,6 +116,8 @@
 					var usage = scope.Attributes[countAttr].value
 					saveUsage(scopeid, attribute, usage)
 				}
+				if (scopes.length === 0)
+					saveUsage('', attribute, 0)
 			}
 		
 			function saveUsage(scopeid, attribute, usage) {
@@ -131,7 +133,7 @@
 				{
 					var path = getScopePath(scopeid)
 					var info = scopesInfo[scopeid]
-					var state = info.closed? "Closed": "Open"
+					var state = {'true': 'Closed', 'false': 'Open', 'null': ''}[info.closed]
 					var scopeUsages = usages[scopeid]
 					for (var attribute in scopeUsages)
 					{
@@ -160,6 +162,7 @@
 			}
 
 			function getScopePath(scopeid) {
+				if (!scopeid) return null
 				var parents = []
 				var parentid = scopesInfo[scopeid].parentid
 				var parentInfo = scopesInfo[parentid]
@@ -171,6 +174,7 @@
 			}
 
 			function htmlEncode(text) {
+				if (text == null) return ''
 				return text.toString().replace('<', '&lt;')
 			}
 		})
