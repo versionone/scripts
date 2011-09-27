@@ -1,0 +1,196 @@
+<!--
+	Report the usage of custom attributes, broken down by Project.
+
+	Place this file in the Custom folder of your VersionOne web folder.
+	Navigate to the URL http://server/VersionOne/Custom/custom-field-usage.html
+	You must already be logged into VersionOne.
+-->
+
+<html>
+<head>
+	<script src='../scripts/jquery.js'></script>
+	<script>
+		String.prototype.startsWith = function startsWith(prefix) {return this.lastIndexOf(prefix, 0) === 0}
+		String.prototype.format = function format(namedValues){
+			var indexedValues = arguments
+			return this.replace(/#\{(\w*)\}|\{(\d+)\}/g, function(m, name, index){
+				return name === undefined? indexedValues[index]: namedValues[name]
+			})
+		}
+
+		$(function(){
+			var relationMap = {
+				'PrimaryWorkitem': 'Workitems',
+				'Story': 'Workitems',
+				//'ChangeSet': '',
+				'Defect': 'Workitems',
+				'Environment': 'Environments',
+				'Theme': 'Workitems',
+				'Issue': 'Issues',
+				//'Member': '',
+				'Scope': 'ID',
+				'RegressionSuite': 'RegressionPlans.RegressionSuites',
+				'Request': 'Requests',
+				'Timebox': 'Schedule.Timeboxes',
+				'Task': 'Workitems',
+				'Test': 'Workitems',
+				'TestSet': 'Workitems'
+			}
+
+			var outputPlace = $('#results')
+
+			var usages = {}
+			var scopesInfo = {}
+			var resultsPending = 0
+
+			++resultsPending
+			$.getJSON('rest-1.v1/Data/Scope?Accept=application/json&sel=Name,IsInactive,Parent', function(data) {
+				onScopesInfo(data.Assets)
+				if (! --resultsPending) resultsReady()
+			})
+
+			function onScopesInfo(scopes) {
+				$.each(scopes, function(i, scope) {
+					scopesInfo[scope.id] = {
+						name: scope.Attributes.Name.value, 
+						closed: scope.Attributes.IsInactive.value,
+						parentid: scope.Attributes.Parent.value ? scope.Attributes.Parent.value.idref: null
+					}
+				})
+			}
+
+			++resultsPending
+			$.getJSON('meta.v1?Accept=application/json', function(meta) {
+				onMeta(meta)
+				if (! --resultsPending) resultsReady()
+			})
+
+			function onMeta(meta) {
+				var customAttributes = []
+
+				$.each(meta.AssetTypes, function() {
+					var assetType = this
+					$.each(assetType.Attributes, function() {
+						var attribute = this
+						if (attribute.IsCanned === undefined) attribute.IsCanned = !attribute.Name.startsWith('Custom_')
+						if (attribute.IsCanned || attribute.Base) return
+						customAttributes.push({
+							attribute: attribute,
+							assetType: assetType
+						})
+					})
+				})
+
+				$.each(customAttributes, function(i, customAttribute) {
+					if (customAttribute.attribute.AttributeType === "LongText") return
+
+					var scopeRelation = relationMap[customAttribute.assetType.Token]
+					if (!scopeRelation) return
+
+					var existsAttr = "#{scopeRelation}:#{assetType}[#{customAttr}]".format({
+						scopeRelation: scopeRelation,
+						assetType: customAttribute.assetType.Token,
+						customAttr: customAttribute.attribute.Name
+					})
+
+					var countAttr = existsAttr + ".@Count"
+
+					var url = "rest-1.v1/Data/Scope?Accept=application/json&sel=#{countAttr}&where=#{existsAttr}".format({
+						countAttr: countAttr,
+						existsAttr: existsAttr
+					})
+
+					++resultsPending
+					$.getJSON(url, function(data) {
+						onScopeUsage(data.Assets, customAttribute.attribute.Token, countAttr)
+						if (! --resultsPending) resultsReady()
+					})
+				})
+			}
+
+			function onScopeUsage(scopes, attribute, countAttr) {
+				for (var i = 0; i < scopes.length; ++i)
+				{
+					var scope = scopes[i]
+					var scopeid = scope.id
+					var usage = scope.Attributes[countAttr].value
+					saveUsage(scopeid, attribute, usage)
+				}
+			}
+		
+			function saveUsage(scopeid, attribute, usage) {
+				var scope = usages[scopeid] || (usages[scopeid] = {})
+				scope[attribute] = usage
+			}
+		
+			function resultsReady() {
+				var columns = ["project-path", "project-name", "project-state", "attribute", "usage"]
+				var dataArray = []
+
+				for (var scopeid in usages)
+				{
+					var path = getScopePath(scopeid)
+					var info = scopesInfo[scopeid]
+					var state = info.closed? "Closed": "Open"
+					var scopeUsages = usages[scopeid]
+					for (var attribute in scopeUsages)
+					{
+						var usage = scopeUsages[attribute]
+						dataArray.push({
+							"project-path": path,
+							scopeid: scopeid, 
+							parentid: info.parentid,
+							"project-name": info.name, 
+							"project-state": state, 
+							attribute: attribute, 
+							usage: usage
+						})
+					}
+				}
+
+				$("#results thead").append( "<tr><th>" + columns.join("</th><th>") + "</th></tr>" )
+
+				var accum = []
+				$.each(dataArray, function(i, rowdata) {
+					accum.push('<tr>')
+					$.each(columns, function(i, col) { accum.push( '<td>', htmlEncode(rowdata[col]), '</td>') })
+					accum.push('</tr>')
+				})
+				$('#results tbody:first').append(accum.join(''))
+			}
+
+			function getScopePath(scopeid) {
+				var parents = []
+				var parentid = scopesInfo[scopeid].parentid
+				var parentInfo = scopesInfo[parentid]
+				while (parentInfo) {
+					parents.unshift(parentInfo.name)
+					parentInfo = scopesInfo[parentInfo.parentid]
+				}
+				return parents.join(' \\ ')
+			}
+
+			function htmlEncode(text) {
+				return text.toString().replace('<', '&lt;')
+			}
+		})
+	</script>
+
+	<style>
+		table { border-collapse: collapse; }
+		th { background-color: #DDD; }
+		td { border: 1px solid #DDD; }
+	</style>
+</head>
+<body>
+	<table id='results'>
+		<thead />
+		<tbody />
+	</table>
+</body>
+</html>
+
+
+
+
+
