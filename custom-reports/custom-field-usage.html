@@ -5,7 +5,7 @@
 	Navigate to the URL http://server/VersionOne/Custom/custom-field-usage.html
 	You must already be logged into VersionOne.
 
-	1.6
+	1.7
 -->
 
 <html>
@@ -39,7 +39,7 @@
 				'TestSet': 'Workitems:TestSet'
 			}
 
-			var scopesInfo = {'': {name: ''}}
+			var Scopes = {'': {name: '', path: function() {return ''}}}
 			var CustomAttributes = []
 			var metaPending = 0
 
@@ -48,18 +48,28 @@
 
 			++metaPending
 			$.getJSON('rest-1.v1/Data/Scope?Accept=application/json&sel=Name,IsInactive,Parent', function(data) {
-				onScopesInfo(data.Assets)
+				onScopes(data.Assets)
 				if (! --metaPending) metaReady()
 			})
 
-			function onScopesInfo(scopes) {
-				$.each(scopes, function(i, scope) {
-					scopesInfo[scope.id] = {
-						name: scope.Attributes.Name.value, 
-						closed: scope.Attributes.IsInactive.value,
-						parentid: scope.Attributes.Parent.value ? scope.Attributes.Parent.value.idref: null
+			function onScopes(scopeAssets) {
+				$.each(scopeAssets, function(i, scopeAsset) {
+					Scopes[scopeAsset.id] = {
+						name: scopeAsset.Attributes.Name.value, 
+						state: scopeAsset.Attributes.IsInactive.value? "Closed": "Open",
+						_parentid: scopeAsset.Attributes.Parent.value ? scopeAsset.Attributes.Parent.value.idref: null,
+						path: path
 					}
 				})
+
+				function path() {
+					if (this._path === undefined)
+					{
+						var parent = Scopes[this._parentid]
+						this._path = parent? parent.path() + ' \\ ' + parent.name: ''
+					}
+					return this._path
+				}
 			}
 
 			++metaPending
@@ -107,15 +117,13 @@
 				})
 			}
 
-			function onScopeUsage(scopes, attribute, countAttr) {
-				if (scopes.length > 0)
-					$.each(scopes, function(i, scope) {
-						var scopeid = scope.id
-						var usage = scope.Attributes[countAttr].value
+			function onScopeUsage(scopeAssets, attribute, countAttr) {
+				if (scopeAssets.length > 0)
+					$.each(scopeAssets, function(i, scopeAsset) {
+						var scopeid = scopeAsset.id
+						var usage = scopeAsset.Attributes[countAttr].value
 						results.push({
-							"project-path": getScopePath(scopeid),
-							"project-name": scopesInfo[scopeid].name, 
-							"project-state": {'true': 'Closed', 'false': 'Open', 'null': ''}[scopesInfo[scopeid].closed], 
+							scope: Scopes[scopeAsset.id],
 							attribute: attribute, 
 							usage: usage
 						})
@@ -123,6 +131,7 @@
 				else
 				{
 					results.push({
+						scope: Scopes[''],
 						attribute: attribute, 
 						usage: 0
 					})
@@ -131,11 +140,11 @@
 		
 			function resultsReady() {
 				var columns = [
-					{name: "Project Path", value: function() {return this["project-path"]}}, 
-					{name: "Project Name", value: function() {return this["project-name"]}}, 
-					{name: "Project State", value: function() {return this["project-state"]}}, 
-					{name: "Custom Attribute", value: function() {return this["attribute"]}}, 
-					{name: "usage", value: function() {return this["usage"]}}
+					{name: "Project Path", value: function() {return this.scope.path()}}, 
+					{name: "Project Name", value: function() {return this.scope.name}}, 
+					{name: "Project State", value: function() {return this.scope.state}}, 
+					{name: "Custom Attribute", value: function() {return this.attribute}}, 
+					{name: "Usage", value: function() {return this.usage}}
 				]
 
 				var html = []
@@ -162,11 +171,11 @@
 			function getScopePath(scopeid) {
 				if (!scopeid) return null
 				var parents = []
-				var parentid = scopesInfo[scopeid].parentid
-				var parentInfo = scopesInfo[parentid]
+				var parentid = Scopes[scopeid].parentid
+				var parentInfo = Scopes[parentid]
 				while (parentInfo) {
 					parents.unshift(parentInfo.name)
-					parentInfo = scopesInfo[parentInfo.parentid]
+					parentInfo = Scopes[parentInfo.parentid]
 				}
 				return parents.join(' \\ ')
 			}
