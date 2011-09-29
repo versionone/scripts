@@ -5,7 +5,7 @@
 	Navigate to the URL http://server/VersionOne/Custom/custom-field-usage.html
 	You must already be logged into VersionOne.
 
-	1.4
+	1.5
 -->
 
 <html>
@@ -70,12 +70,10 @@
 			})
 
 			function onMeta(meta) {
-				$.each(meta.AssetTypes, function() {
-					var assetType = this
-					$.each(assetType.Attributes, function() {
-						var attribute = this
+				$.each(meta.AssetTypes, function(assetTypeToken, assetType) {
+					$.each(assetType.Attributes, function(attributeToken, attribute) {
 						if (attribute.IsCanned === undefined) attribute.IsCanned = !attribute.Name.startsWith('Custom_')
-						if (attribute.IsCanned || attribute.Base) return
+						if (attribute.IsCanned || attribute.Base || attribute.AttributeType === "LongText") return
 						CustomAttributes.push({
 							attribute: attribute,
 							assetType: assetType
@@ -86,8 +84,6 @@
 
 			function metaReady() {
 				$.each(CustomAttributes, function(i, customAttribute) {
-					if (customAttribute.attribute.AttributeType === "LongText") return
-
 					var scopeRelation = RelationMap[customAttribute.assetType.Token]
 					if (!scopeRelation) return
 
@@ -113,14 +109,13 @@
 			}
 
 			function onScopeUsage(scopes, attribute, countAttr) {
-				for (var i = 0; i < scopes.length; ++i)
-				{
-					var scope = scopes[i]
-					var scopeid = scope.id
-					var usage = scope.Attributes[countAttr].value
-					saveUsage(scopeid, attribute, usage)
-				}
-				if (scopes.length === 0)
+				if (scopes.length > 0)
+					$.each(scopes, function(i, scope) {
+						var scopeid = scope.id
+						var usage = scope.Attributes[countAttr].value
+						saveUsage(scopeid, attribute, usage)
+					})
+				else
 					saveUsage('', attribute, 0)
 			}
 		
