@@ -5,7 +5,7 @@
 	Navigate to the URL http://server/VersionOne/Custom/custom-field-usage.html
 	You must already be logged into VersionOne.
 
-	1.2
+	1.3
 -->
 
 <html>
@@ -21,22 +21,22 @@
 		}
 
 		$(function(){
-			var relationMap = {
-				'PrimaryWorkitem': 'Workitems',
-				'Story': 'Workitems',
+			var RelationMap = {
+				'PrimaryWorkitem': 'Workitems:PrimaryWorkitem',
+				'Story': 'Workitems:Story',
 				//'ChangeSet': '',
-				'Defect': 'Workitems',
+				'Defect': 'Workitems:Defect',
 				'Environment': 'Environments',
-				'Theme': 'Workitems',
+				'Theme': 'Workitems:Theme',
 				'Issue': 'Issues',
 				//'Member': '',
-				'Scope': 'ID',
+				'Scope': 'ChildrenAndMe',
 				'RegressionSuite': 'RegressionPlans.RegressionSuites',
 				'Request': 'Requests',
 				'Timebox': 'Schedule.Timeboxes',
-				'Task': 'Workitems',
-				'Test': 'Workitems',
-				'TestSet': 'Workitems'
+				'Task': 'Workitems:Task',
+				'Test': 'Workitems:Test',
+				'TestSet': 'Workitems:TestSet'
 			}
 
 			var usages = {}
@@ -84,10 +84,10 @@
 				$.each(customAttributes, function(i, customAttribute) {
 					if (customAttribute.attribute.AttributeType === "LongText") return
 
-					var scopeRelation = relationMap[customAttribute.assetType.Token]
+					var scopeRelation = RelationMap[customAttribute.assetType.Token]
 					if (!scopeRelation) return
 
-					var existsAttr = "#{scopeRelation}:#{assetType}[#{customAttr}]".format({
+					var existsAttr = "#{scopeRelation}[#{customAttr}]".format({
 						scopeRelation: scopeRelation,
 						assetType: customAttribute.assetType.Token,
 						customAttr: customAttribute.attribute.Name
