@@ -5,7 +5,7 @@
 	Navigate to the URL http://server/VersionOne/Custom/custom-field-usage.html
 	You must already be logged into VersionOne.
 
-	1.3
+	1.4
 -->
 
 <html>
@@ -41,12 +41,16 @@
 
 			var usages = {}
 			var scopesInfo = {'': {name: ''}}
+			var CustomAttributes = []
+			var metaPending = 0
+
+			var results = []
 			var resultsPending = 0
 
-			++resultsPending
+			++metaPending
 			$.getJSON('rest-1.v1/Data/Scope?Accept=application/json&sel=Name,IsInactive,Parent', function(data) {
 				onScopesInfo(data.Assets)
-				if (! --resultsPending) resultsReady()
+				if (! --metaPending) metaReady()
 			})
 
 			function onScopesInfo(scopes) {
@@ -59,29 +63,29 @@
 				})
 			}
 
-			++resultsPending
+			++metaPending
 			$.getJSON('meta.v1?Accept=application/json', function(meta) {
 				onMeta(meta)
-				if (! --resultsPending) resultsReady()
+				if (! --metaPending) metaReady()
 			})
 
 			function onMeta(meta) {
-				var customAttributes = []
-
 				$.each(meta.AssetTypes, function() {
 					var assetType = this
 					$.each(assetType.Attributes, function() {
 						var attribute = this
 						if (attribute.IsCanned === undefined) attribute.IsCanned = !attribute.Name.startsWith('Custom_')
 						if (attribute.IsCanned || attribute.Base) return
-						customAttributes.push({
+						CustomAttributes.push({
 							attribute: attribute,
 							assetType: assetType
 						})
 					})
 				})
+			}
 
-				$.each(customAttributes, function(i, customAttribute) {
+			function metaReady() {
+				$.each(CustomAttributes, function(i, customAttribute) {
 					if (customAttribute.attribute.AttributeType === "LongText") return
 
 					var scopeRelation = RelationMap[customAttribute.assetType.Token]
