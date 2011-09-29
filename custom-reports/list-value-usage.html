@@ -1,0 +1,233 @@
+<!--
+	Report the usage of list values, broken down by Project.
+
+	Place this file in the Custom folder of your VersionOne web folder.
+	Navigate to the URL http://server/VersionOne/Custom/list-value-usage.html
+	You must already be logged into VersionOne.
+
+	1.0
+-->
+
+<html>
+<head>
+	<script src='http://ajax.googleapis.com/ajax/libs/jquery/1.6.4/jquery.min.js'></script>
+	<script>
+		String.prototype.startsWith = function startsWith(prefix) {return this.lastIndexOf(prefix, 0) === 0}
+		String.prototype.format = function format(namedValues){
+			var indexedValues = arguments
+			return this.replace(/#\{([^}]*)\}|\{(\d+)\}/g, function(m, expr, index){
+				if (expr === undefined) return indexedValues[index]
+				else with(namedValues) return eval(expr) 
+			})
+		}
+
+		$(function(){
+			var Scopes = {'': {name: '', path: function() {return ''}}}
+			var ListValuesByType = {}
+			var ListTypes = {}
+			var ListRelations = {}
+			var metaPending = 0
+
+			var results = []
+			var resultsPending = 0
+
+			var RelationMap = {
+				'PrimaryWorkitem': 'Workitems:PrimaryWorkitem',
+				'Story': 'Workitems:Story',
+				//'ChangeSet': '',
+				'Defect': 'Workitems:Defect',
+				'Environment': 'Environments',
+				'Theme': 'Workitems:Theme',
+				'Issue': 'Issues',
+				//'Member': '',
+				'Scope': 'ChildrenAndMe',
+				'RegressionSuite': 'RegressionPlans.RegressionSuites',
+				'Request': 'Requests',
+				'Timebox': 'Schedule.Timeboxes',
+				'Task': 'Workitems:Task',
+				'Test': 'Workitems:Test',
+				'TestSet': 'Workitems:TestSet'
+			}
+				
+			++metaPending
+			$.getJSON('rest-1.v1/Data/Scope?Accept=application/json&sel=Name,IsInactive,Parent', function(data) {
+				onScopes(data.Assets)
+				if (! --metaPending) metaReady()
+			})
+
+			function onScopes(scopeAssets) {
+				$.each(scopeAssets, function(i, scopeAsset) {
+					Scopes[scopeAsset.id] = {
+						name: scopeAsset.Attributes.Name.value, 
+						state: scopeAsset.Attributes.IsInactive.value? "Closed": "Open",
+						_parentid: scopeAsset.Attributes.Parent.value ? scopeAsset.Attributes.Parent.value.idref: null,
+						path: path
+					}
+				})
+
+				function path() {
+					if (this._path === undefined)
+					{
+						var parent = Scopes[this._parentid]
+						this._path = parent? parent.path() + ' \\ ' + parent.name: ''
+					}
+					return this._path
+				}
+			}
+
+			++metaPending
+			$.getJSON('rest-1.v1/Data/List?Accept=application/json&sel=Name,Inactive,AssetType&sort=Order', function(data) {
+				onListValues(data.Assets)
+				if (! --metaPending) metaReady()
+			})
+
+			function onListValues(listValueAssets) {
+				$.each(listValueAssets, function(i, listValueAsset) {
+					var type = listValueAsset.Attributes.AssetType.value
+					var values = ListValuesByType[type] || (ListValuesByType[type] = [])
+					values.push({
+						type: type,
+						id: listValueAsset.id,
+						name: listValueAsset.Attributes.Name.value,
+						state: listValueAsset.Attributes.Inactive.value? "Inactive": "Active"
+					})
+				})
+			}
+
+			++metaPending
+			$.getJSON('meta.v1?Accept=application/json', function(meta) {
+				onMeta(meta.AssetTypes)
+				if (! --metaPending) metaReady()
+			})
+
+			function onMeta(assetTypes) {
+				$.each(assetTypes, function(token, assetType) {
+					if (assetType.Base && assetType.Base.nameref === 'List')
+						ListTypes[token] = assetType
+				})
+
+				$.each(assetTypes, function(relatesFrom, assetType) {
+					if (!RelationMap[relatesFrom]) return
+
+					$.each(assetType.Attributes, function(relationToken, attribute) {
+						if (attribute.AttributeType !== 'Relation') return
+						var relatesTo = attribute.RelatedAsset.nameref
+						if (!ListTypes[relatesTo]) return
+						ListRelations[relationToken] = {
+							token: relationToken,
+							name: attribute.Name,
+							from: relatesFrom,
+							to: relatesTo
+						}
+					})
+				})
+			}
+
+			function metaReady() {
+				$.each(ListRelations, function(relationToken, relation) {
+					var listValues = ListValuesByType[relation.to] || []
+					if (!listValues) debugger
+					$.each(listValues, function(index, listValue) {
+
+						var scopeRelation = RelationMap[relation.from]
+						if (!scopeRelation) return
+
+						var filteredAttr = "#{scopeRelation}[#{relation.name}='#{listValue.id}']".format({
+							scopeRelation: scopeRelation,
+							relation: relation,
+							listValue: listValue
+						})
+
+						var countAttr = filteredAttr + ".@Count"
+
+						var url = "rest-1.v1/Data/Scope?Accept=application/json&sel=#{countAttr}&where=#{filteredAttr}".format({
+							countAttr: countAttr,
+							filteredAttr: filteredAttr
+						})
+						
+						++resultsPending
+						$.getJSON(url, function(data) {
+							onScopeUsage(data.Assets, countAttr, relation, index, listValue)
+							if (! --resultsPending) resultsReady()
+						})
+					})
+				})
+			}
+
+			function onScopeUsage(scopeAssets, countAttr, relation, listValueIndex, listValue) {
+				if (scopeAssets.length > 0)
+					$.each(scopeAssets, function(i, scopeAsset) {
+						results.push({
+							scope: Scopes[scopeAsset.id],
+							relation: relation,
+							order: listValueIndex,
+							value: listValue,
+							count: scopeAsset.Attributes[countAttr].value
+						})			
+					})
+				else	
+					results.push({
+						scope: Scopes[''],
+						relation: relation,
+						order: listValueIndex,
+						value: listValue,
+						count: 0
+					})			
+			}
+		
+			function resultsReady() {
+				var columns = [
+					{name: "Project Path", value: function() {return this.scope.path()}}, 
+					{name: "Project Name", value: function() {return this.scope.name}}, 
+					{name: "Project State", value: function() {return this.scope.state}}, 
+					{name: "List Type", value: function() {return this.value.type}}, 
+					{name: "List Value", value: function() {return this.value.name}}, 
+					{name: "List Order", value: function() {return this.order}}, 
+					{name: "Value State", value: function() {return this.value.state}}, 
+					{name: "Used In", value: function() {return this.relation.token}}, 
+					{name: "Usage", value: function() {return this.count}}
+				]
+
+				var html = []
+				html.push('<table class=results>')
+					html.push('<thead>', '<tr>')
+					$.each(columns, function(i, column) { 
+						html.push('<th>', htmlEncode(column.name), '</th>') 
+					})
+					html.push('</tr>', '</thead>')
+
+					html.push('<tbody>')
+					$.each(results, function(i, result) {
+						html.push('<tr>')
+						$.each(columns, function(i, column) { 
+							html.push('<td>', htmlEncode(column.value.call(result)), '</td>') 
+						})
+						html.push('</tr>')
+					})
+					html.push('</tbody>')
+
+				$("#resultsPlace").html( html.join('') )
+			}
+
+			function htmlEncode(text) {
+				if (text == null) return ''
+				return text.toString().replace('<', '&lt;')
+			}
+		})
+	</script>
+
+	<style>
+		table { border-collapse: collapse; }
+		th { background-color: #DDD; }
+		td { border: 1px solid #DDD; }
+	</style>
+</head>
+<body>
+	<div id='resultsPlace'>Generating Report...</div>
+</body>
+</html>
+
+
+
+
+
