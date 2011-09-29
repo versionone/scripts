@@ -5,7 +5,7 @@
 	Navigate to the URL http://server/VersionOne/Custom/custom-field-usage.html
 	You must already be logged into VersionOne.
 
-	1.5
+	1.6
 -->
 
 <html>
@@ -39,7 +39,6 @@
 				'TestSet': 'Workitems:TestSet'
 			}
 
-			var usages = {}
 			var scopesInfo = {'': {name: ''}}
 			var CustomAttributes = []
 			var metaPending = 0
@@ -113,15 +112,21 @@
 					$.each(scopes, function(i, scope) {
 						var scopeid = scope.id
 						var usage = scope.Attributes[countAttr].value
-						saveUsage(scopeid, attribute, usage)
+						results.push({
+							"project-path": getScopePath(scopeid),
+							"project-name": scopesInfo[scopeid].name, 
+							"project-state": {'true': 'Closed', 'false': 'Open', 'null': ''}[scopesInfo[scopeid].closed], 
+							attribute: attribute, 
+							usage: usage
+						})
 					})
 				else
-					saveUsage('', attribute, 0)
-			}
-		
-			function saveUsage(scopeid, attribute, usage) {
-				var scope = usages[scopeid] || (usages[scopeid] = {})
-				scope[attribute] = usage
+				{
+					results.push({
+						attribute: attribute, 
+						usage: 0
+					})
+				}
 			}
 		
 			function resultsReady() {
@@ -133,29 +138,6 @@
 					{name: "usage", value: function() {return this["usage"]}}
 				]
 
-				var dataArray = []
-
-				for (var scopeid in usages)
-				{
-					var path = getScopePath(scopeid)
-					var info = scopesInfo[scopeid]
-					var state = {'true': 'Closed', 'false': 'Open', 'null': ''}[info.closed]
-					var scopeUsages = usages[scopeid]
-					for (var attribute in scopeUsages)
-					{
-						var usage = scopeUsages[attribute]
-						dataArray.push({
-							"project-path": path,
-							scopeid: scopeid, 
-							parentid: info.parentid,
-							"project-name": info.name, 
-							"project-state": state, 
-							attribute: attribute, 
-							usage: usage
-						})
-					}
-				}
-
 				var html = []
 				html.push('<table class=results>')
 					html.push('<thead>', '<tr>')
@@ -165,7 +147,7 @@
 					html.push('</tr>', '</thead>')
 
 					html.push('<tbody>')
-					$.each(dataArray, function(i, result) {
+					$.each(results, function(i, result) {
 						html.push('<tr>')
 						$.each(columns, function(i, column) { 
 							html.push('<td>', htmlEncode(column.value.call(result)), '</td>') 
