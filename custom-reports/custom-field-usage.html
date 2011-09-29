@@ -5,7 +5,7 @@
 	Navigate to the URL http://server/VersionOne/Custom/custom-field-usage.html
 	You must already be logged into VersionOne.
 
-	1.0
+	1.1
 -->
 
 <html>
@@ -126,7 +126,14 @@
 			}
 		
 			function resultsReady() {
-				var columns = ["project-path", "project-name", "project-state", "attribute", "usage"]
+				var columns = [
+					{name: "project-path", value: function() {return this["project-path"]}}, 
+					{name: "project-name", value: function() {return this["project-name"]}}, 
+					{name: "project-state", value: function() {return this["project-state"]}}, 
+					{name: "attribute", value: function() {return this["attribute"]}}, 
+					{name: "usage", value: function() {return this["usage"]}}
+				]
+
 				var dataArray = []
 
 				for (var scopeid in usages)
@@ -150,15 +157,25 @@
 					}
 				}
 
-				$("#results thead").append( "<tr><th>" + columns.join("</th><th>") + "</th></tr>" )
+				var html = []
+				html.push('<table class=results>')
+					html.push('<thead>', '<tr>')
+					$.each(columns, function(i, column) { 
+						html.push('<th>', htmlEncode(column.name), '</th>') 
+					})
+					html.push('</tr>', '</thead>')
 
-				var accum = []
-				$.each(dataArray, function(i, rowdata) {
-					accum.push('<tr>')
-					$.each(columns, function(i, col) { accum.push( '<td>', htmlEncode(rowdata[col]), '</td>') })
-					accum.push('</tr>')
-				})
-				$('#results tbody:first').append(accum.join(''))
+					html.push('<tbody>')
+					$.each(dataArray, function(i, result) {
+						html.push('<tr>')
+						$.each(columns, function(i, column) { 
+							html.push('<td>', htmlEncode(column.value.call(result)), '</td>') 
+						})
+						html.push('</tr>')
+					})
+					html.push('</tbody>')
+
+				$("#resultsPlace").html( html.join('') )
 			}
 
 			function getScopePath(scopeid) {
@@ -187,10 +204,7 @@
 	</style>
 </head>
 <body>
-	<table id='results'>
-		<thead />
-		<tbody />
-	</table>
+	<div id='resultsPlace'>Generating Report...</div>
 </body>
 </html>
 
