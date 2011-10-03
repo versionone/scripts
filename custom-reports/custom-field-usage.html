@@ -5,7 +5,7 @@
 	Navigate to the URL http://server/VersionOne/Custom/custom-field-usage.html
 	You must already be logged into VersionOne.
 
-	1.7
+	1.8
 -->
 
 <html>
@@ -96,10 +96,11 @@
 					var scopeRelation = RelationMap[customAttribute.assetType.Token]
 					if (!scopeRelation) return
 
-					var existsAttr = "#{scopeRelation}[#{customAttr}]".format({
+					var existsAttr = "#{scopeRelation}[#{customAttr}#{notNull}]".format({
 						scopeRelation: scopeRelation,
 						assetType: customAttribute.assetType.Token,
-						customAttr: customAttribute.attribute.Name
+						customAttr: customAttribute.attribute.Name,
+						notNull: customAttribute.attribute.AttributeType === "Relation"? "!='NULL'": "!=''"
 					})
 
 					var countAttr = existsAttr + ".@Count"
