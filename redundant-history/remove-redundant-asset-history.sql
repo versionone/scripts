@@ -43,7 +43,11 @@ end
 
 alter table dbo.['+@entity+'] disable trigger all
 update dbo.['+@entity+'] set AuditBegin=h.AuditBegin from dbo.['+@history+'] h where h.ID=dbo.['+@entity+'].ID and AuditEnd is null and h.AuditBegin<>dbo.['+@entity+'].AuditBegin
-alter table dbo.['+@entity+'] enable trigger all'
+alter table dbo.['+@entity+'] enable trigger all
+
+DBCC DBREINDEX (['+@history+'])
+DBCC DBREINDEX (['+@entity+'])
+'
 
 	exec(@sql);
 	print @sql
