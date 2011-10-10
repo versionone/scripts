@@ -42,6 +42,8 @@ end
 select '''+@custom+''' TableName, Total, Duplicate, Duplicate*100.0/nullif(Total,0) RedundancyPercentage from (select
 	(select COUNT(*) from dbo.['+@custom+'] one join dbo.['+@custom+'] two on two.ID=one.ID and two.Definition=one.Definition and two.AuditBegin=one.AuditEnd and two.Value=one.Value) Duplicate,
 	(select COUNT(*) from dbo.['+@custom+']) Total) _
+
+DBCC DBREINDEX (['+@custom+'])
 '
 
 	print @sql
