@@ -17,7 +17,7 @@ delete from IdeasUserCache_Now where MemberID = @memberId
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-print 'IdeasUserCache cleared for MemberID = ' + @memberId
+print 'IdeasUserCache cleared for MemberID = ' + cast(@memberId as varchar(10))
 
 if (@saveChanges = 1) goto OK
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
