@@ -1,61 +1,52 @@
-set nocount on
+/*	
+ *	Remove duplicate Access records that occur on the same day.
+ *	
+ *	NOTE:  This script defaults to rolling back changes.
+ *		To commit changes, set @saveChanges = 1.
+ */
+declare @saveChanges bit; --set @saveChanges = 1
 
-declare @totalCount real, @redundantCount real
-select @totalCount=COUNT(*) from Access
-select @redundantCount=COUNT(*) --[Number of redundant records, before]
-from Access C1
-join Access C2 on C1.ID = C2.ID and C1.UserAgent = C2.UserAgent and C1.AuditEnd = C2.AuditBegin
-join Audit A1 on A1.ID = C1.AuditBegin
-join Audit A2 on A2.ID = C2.AuditBegin
-where floor(cast(A1.ChangeDateUTC as real)) = floor(cast(A2.ChangeDateUTC as real))
-select @totalCount [Total Number of Records], @redundantCount [Number of Redundant Records], 100.0*@redundantCount/@totalCount [Redundancy Percentage]
-
-begin tran
-
-while 0<(
-	select count(*)
-	from Access C1
-	join Access C2 on C1.ID = C2.ID and C1.UserAgent = C2.UserAgent and C1.AuditEnd = C2.AuditBegin
-	join Audit A1 on A1.ID = C1.AuditBegin
-	join Audit A2 on A2.ID = C2.AuditBegin
-	where floor(cast(A1.ChangeDateUTC as real)) = floor(cast(A2.ChangeDateUTC as real))
-)
-begin
-
-	declare @id int, @auditBegin int, @auditMiddle int
-	declare C cursor for
-		select C1.ID, C1.AuditBegin, C1.AuditEnd
-		from Access C1
-		join Access C2 on C1.ID = C2.ID and C1.UserAgent = C2.UserAgent and C1.AuditEnd = C2.AuditBegin
-		join Audit A1 on A1.ID = C1.AuditBegin
-		join Audit A2 on A2.ID = C2.AuditBegin
-		where floor(cast (A1.ChangeDateUTC as real)) = floor(cast (A2.ChangeDateUTC as real))
-	open C
-	while 1=1 begin
-		fetch next from C into @id , @auditBegin , @auditMiddle
-		if @@FETCH_STATUS<>0 break
-
-		delete Access where ID=@id and AuditBegin=@auditBegin
-		update Access set AuditBegin=@auditBegin where ID=@id and AuditBegin=@auditMiddle
+BEGIN
+	if not exists (select * from INFORMATION_SCHEMA.TABLES where TABLE_NAME='Access') begin
+		raiserror('No such table [Access]',16,1)
+		goto DONE
 	end
-	close C
-	deallocate C
+END
 
-end
+declare @error int, @rowcount varchar(20)
+set nocount on; begin tran; save tran TX
 
-select @totalCount=COUNT(*) from Access
-select @redundantCount=COUNT(*) --[Number of redundant records, after]
-from Access C1
-join Access C2 on C1.ID = C2.ID and C1.UserAgent = C2.UserAgent and C1.AuditEnd = C2.AuditBegin
-join Audit A1 on A1.ID = C1.AuditBegin
-join Audit A2 on A2.ID = C2.AuditBegin
-where floor(cast(A1.ChangeDateUTC as real)) = floor(cast(A2.ChangeDateUTC as real))
-select @totalCount [Total Number of Records], @redundantCount [Number of Redundant Records], 100.0*@redundantCount/@totalCount [Redundancy Percentage]
+delete Access
+from (
+	select ID, AuditBegin, R=ROW_NUMBER() OVER(partition by ID, ByID, UserAgent, OnDay order by AuditBegin desc)
+	from (
+		select Access.ID, AuditBegin, ByID, UserAgent, OnDay=floor(cast(Audit.ChangeDateUTC as real))
+		from Access 
+		join Audit on Audit.ID=AuditBegin
+	) A
+) C
+where Access.ID=C.ID and Access.AuditBegin=C.AuditBegin and R>1
 
---------------------------------------------------
---- Change the following lines to commit changes
-rollback 
--- commit
---------------------------------------------------
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+print @rowcount + ' redundant Access records purged'
 
-DBCC DBREINDEX (Access)
+;with A as (
+	select *, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
+	from dbo.[Access]
+)
+update dbo.[Access] set AuditEnd=C.AuditBegin
+from A B
+left join A C on B.ID=C.ID and B.R+1=C.R
+where [Access].ID=B.ID and [Access].AuditBegin=B.AuditBegin
+	and isnull(B.AuditEnd,-1)<>isnull(C.AuditBegin,-1)
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+
+
+if (@saveChanges = 1) goto OK
+raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
+ERR: rollback tran TX
+OK: commit
+DONE:
