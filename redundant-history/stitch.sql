@@ -51,7 +51,7 @@ left join A C on B.ID=C.ID and B.R+1=C.R
 where [{hist}].ID=B.ID and [{hist}].AuditBegin=B.AuditBegin
 	and isnull(B.AuditEnd,-1)<>isnull(C.AuditBegin,-1)'
 select @sql = REPLACE(@sqlTemplate, '{hist}', @histTable)
-print(@sql)
+--print(@sql)
 exec(@sql)
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -62,7 +62,7 @@ print @rowcount + ' historical ' + @histTable + ' records fixed'
 select @sqlTemplate = 
 'alter table dbo.[{now}] disable trigger all'
 select @sql = REPLACE(@sqlTemplate, '{now}', @nowTable)
-print(@sql)
+--print(@sql)
 exec(@sql)
 
 select @sqlTemplate = 
@@ -70,7 +70,7 @@ select @sqlTemplate =
 from dbo.[{hist}]
 where [{hist}].ID=[{now}].ID and [{hist}].AuditEnd is null and [{hist}].AuditBegin<>[{now}].AuditBegin'
 select @sql = REPLACE(REPLACE(@sqlTemplate, '{hist}', @histTable), '{now}', @nowTable)
-print(@sql)
+--print(@sql)
 exec(@sql)
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -78,7 +78,7 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 select @sqlTemplate = 
 'alter table dbo.[{now}] enable trigger all'
 select @sql = REPLACE(@sqlTemplate, '{now}', @nowTable)
-print(@sql)
+--print(@sql)
 exec(@sql)
 
 if @error<>0 goto ERR
