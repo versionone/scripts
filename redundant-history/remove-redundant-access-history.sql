@@ -43,6 +43,7 @@ where [Access].ID=B.ID and [Access].AuditBegin=B.AuditBegin
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
+print @rowcount + ' Access records restitched'
 
 
 if (@saveChanges = 1) goto OK
