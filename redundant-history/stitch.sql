@@ -42,7 +42,7 @@ set nocount on; begin tran; save tran TX
 
 select @sqlTemplate = 
 'with A as (
-	select *, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
+	select ID, AuditBegin, AuditEnd, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
 	from dbo.[{hist}]
 )
 update dbo.[{hist}] set AuditEnd=C.AuditBegin
