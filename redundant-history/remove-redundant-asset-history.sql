@@ -1,59 +1,117 @@
-begin tran
+/*	
+ *	Consolidate consecutive identical historical records.
+ *	
+ *	NOTE:  This script defaults to rolling back changes.
+ *		To commit changes, set @saveChanges = 1.
+ */
+declare @saveChanges bit; --set @saveChanges = 1
 
-set nocount on
-declare @entity varchar(8000), @history varchar(8000)
+declare @error int, @rowcount varchar(20)
+set nocount on; begin tran; save tran TX
+
+create table #results (Asset sysname not null, [rowcount] int not null, error int not null)
+declare @now sysname, @hist sysname, @cols varchar(max), @colsEqual varchar(max)
 declare C cursor local fast_forward for
-	select TABLE_NAME Entity, left(TABLE_NAME, len(TABLE_NAME)-4) History
-	from INFORMATION_SCHEMA.TABLES
-	where TABLE_SCHEMA='dbo' and TABLE_NAME like '%_Now' and TABLE_NAME<>'Access_Now' and TABLE_TYPE<>'VIEW'
+	select N.TABLE_NAME nowTable, H.TABLE_NAME histTable, 
+		cols = 
+			(
+				select ','+quotename(COLUMN_NAME)
+				from INFORMATION_SCHEMA.COLUMNS C 
+				where C.TABLE_NAME=N.TABLE_NAME
+					and COLUMN_NAME not in ('ID','AssetType','AuditBegin')
+				for xml path('')
+			),
+		colsEqual = 
+			(
+				select REPLACE(' and (A.{col}=B.{col} or (A.{col} is null and B.{col} is null))', '{col}', quotename(COLUMN_NAME))
+				from INFORMATION_SCHEMA.COLUMNS C 
+				where C.TABLE_NAME=N.TABLE_NAME
+					and COLUMN_NAME not in ('ID','AssetType','AuditBegin')
+				for xml path('')
+			)
+	from INFORMATION_SCHEMA.TABLES N
+	join INFORMATION_SCHEMA.TABLES H on H.TABLE_NAME+'_Now' = N.TABLE_NAME
+	where N.TABLE_TYPE<>'VIEW' and H.TABLE_TYPE<>'VIEW'
+		and H.TABLE_NAME not in (
+			-- Access has its own unique definition of "redundant"
+			'Access', 
+			
+			-- Skip meta assets
+			'AssetType', 'AttributeDefinition', 'BaseRule', 'BaseSyntheticAttributeDefinition', 'DefaultRule', 'EventDefinition', 'ExecuteSecurityCheckAttributeDefinition', 'InsertUpdateRule', 'ManyToManyRelationDefinition', 'Operation', 'Override', 'RelationDefinition', 
+			
+			-- Skip "system" assets
+			'Role', 'State'
+		)
+
 open C
 while 1=1 begin
-	fetch next from C into @entity, @history
+	fetch next from C into @now, @hist, @cols, @colsEqual
 	if @@FETCH_STATUS<>0 break
 
-	declare @sql varchar(8000),@wherecols varchar(8000)
-	select @wherecols=''
-	select
-		@wherecols=@wherecols+char(10)+' and (one.['+COLUMN_NAME+']=two.['+COLUMN_NAME+'] or (one.['+COLUMN_NAME+'] is null and two.['+COLUMN_NAME+'] is null))'
-	from INFORMATION_SCHEMA.COLUMNS
-	where COLUMN_NAME not in('ID','AssetType','AuditBegin','EffectiveViewRights','EffectiveUpdateRights','EffectiveUpdatePrivileges') and TABLE_SCHEMA='dbo' and TABLE_NAME=@entity
+	declare @sql varchar(max); select @sql = '
+		declare @error int, @rowcount int
 
-	select @sql='set nocount on
-while 0<(
-	select count(*)
-	from dbo.['+@history+'] one, dbo.['+@history+'] two
-	where two.ID=one.ID and two.AuditBegin=one.AuditEnd'+@wherecols+'
-) begin
-	declare @id int, @begin int, @end int
-	declare C cursor forward_only dynamic for
-		select one.ID, one.AuditBegin, one.AuditEnd
-		from dbo.['+@history+'] one, dbo.['+@history+'] two
-		where two.ID=one.ID and two.AuditBegin=one.AuditEnd'+@wherecols+'
-	open C
-	while 1=1 begin
-		fetch next from C into @id, @begin, @end
-		if @@FETCH_STATUS<>0 break
+		;with H as (
+			select ID, AuditBegin, R=ROW_NUMBER() OVER(partition by ID order by AuditBegin), AuditEnd
+				{cols}
+			from dbo.[{hist}]
+		)
+		delete dbo.[{hist}]
+		from H A
+		join H B on A.ID=B.ID and A.R+1=B.R
+		where [{hist}].ID=B.ID and [{hist}].AuditBegin=B.AuditBegin
+		 {colsEqual}
 
-		delete dbo.['+@history+'] where ID=@id and AuditBegin=@begin
-		update dbo.['+@history+'] set AuditBegin=@begin where ID=@id and AuditBegin=@end
-	end
-	close C
-	deallocate C
+		select @rowcount=@@ROWCOUNT, @error=@@ERROR
+		insert #results values(''{hist}'', @rowcount, @error)
+		
+		if @rowcount>0 begin
+			;with H as (
+				select ID, AuditBegin, AuditEnd, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
+				from dbo.[{hist}]
+			)
+			update dbo.[{hist}] set AuditEnd=B.AuditBegin
+			from H A
+			left join H B on A.ID=B.ID and A.R+1=B.R
+			where [{hist}].ID=A.ID and [{hist}].AuditBegin=A.AuditBegin
+				and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)
+				
+			alter table dbo.[{now}] disable trigger all
+
+			update dbo.[{now}] set AuditBegin=[{hist}].AuditBegin 
+			from dbo.[{hist}]
+			where [{hist}].ID=[{now}].ID and [{hist}].AuditEnd is null and [{hist}].AuditBegin<>[{now}].AuditBegin
+
+			alter table dbo.[{now}] enable trigger all
+		end'
+		
+	select @sql = REPLACE(@sql, '{now}', @now)
+	select @sql = REPLACE(@sql, '{hist}', @hist)
+	select @sql = REPLACE(@sql, '{colsEqual}', @colsEqual)
+	select @sql = REPLACE(@sql, '{cols}', @cols)
+
+	--print(@sql)
+	exec(@sql)
+	
+	select @error=error, @rowcount=[rowcount] from #results where Asset=@hist
+	if @error<>0 break
+	if @rowcount>0
+		print @rowcount + ' ' + @hist + ' historical records consolidated'
 end
 
-alter table dbo.['+@entity+'] disable trigger all
-update dbo.['+@entity+'] set AuditBegin=h.AuditBegin from dbo.['+@history+'] h where h.ID=dbo.['+@entity+'].ID and AuditEnd is null and h.AuditBegin<>dbo.['+@entity+'].AuditBegin
-alter table dbo.['+@entity+'] enable trigger all
+close C; deallocate c
 
-DBCC DBREINDEX (['+@history+'])
-DBCC DBREINDEX (['+@entity+'])
-'
+/* after every modifying statement, check for errors; optionally, emit status */
+select @rowcount=sum([rowcount]), @error=sum(error) from #results
+select * from #results
+drop table #results
 
-	exec(@sql);
-	print @sql
-end
-close C
-deallocate C
+if @error<>0 goto ERR
+print '-------------'
+print @rowcount + ' total records consolidated'
 
---commit
-rollback
+if (@saveChanges = 1) goto OK
+raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
+ERR: rollback tran TX
+OK: commit
+DONE:
