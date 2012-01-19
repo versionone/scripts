@@ -52,7 +52,7 @@ while 1=1 begin
 		declare @error int, @rowcount int
 
 		;with H as (
-			select ID, AuditBegin, R=ROW_NUMBER() OVER(partition by ID order by AuditBegin), AuditEnd
+			select ID, AuditBegin, R=ROW_NUMBER() OVER(partition by ID order by AuditBegin)
 				{cols}
 			from dbo.[{hist}]
 		)
