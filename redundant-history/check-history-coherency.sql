@@ -1,6 +1,6 @@
 set nocount on
 create table #results (Asset sysname not null, [ID-Prior] int, [AuditBegin-Prior] int, [AuditEnd-Prior] int, [Sequence-Prior] int, [ID-Next] int, [AuditBegin-Next] int, [AuditEnd-Next] int, [Sequence-Next] int)
-declare @now sysname, @hist sysname, @andColsEqual varchar(max)
+declare @hist sysname
 declare C cursor local fast_forward for
 
 	select H.TABLE_NAME hist
