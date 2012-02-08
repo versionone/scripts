@@ -99,7 +99,7 @@ while 1=1 begin
 		print @rowcount + ' ' + @hist + ' historical records consolidated'
 end
 
-close C; deallocate c
+close C; deallocate C
 
 /* after every modifying statement, check for errors; optionally, emit status */
 select @rowcount=sum([rowcount]), @error=sum(error) from #results
