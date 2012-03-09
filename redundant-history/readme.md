@@ -48,3 +48,24 @@ By default, this script **will not commit** its changes; to save changes, edit t
 
 
 
+## Checking Historical Integrity
+These scripts do not modify the database in any way, but check for possible problems in the historical records.  VersionOne Support may ask you to run these as a diagnostic tool.
+
+Any problems identified by these scripts can be fixed by running the __stitch.sql__ script.
+
+#### check-history-coherency.sql
+This script verifies that historical records are correctly sequenced.  Any problems found will be detailed in its output.
+
+#### check-history-vs-now.sql
+This script verifies that the _current_ records match the _last_ historical records.  Any problems found will be detailed in its output.
+
+
+
+## Fixing Historical Integrity
+#### stitch.sql
+This script fixes the sequenceing of historical records, and matches _current_ records to the _last_ historical records.
+
+To use this script, it must be edited to specify exactly _which_ asset's history to fix (as identified by one of the _check-history_ scripts).  Edit the _start_ of the script to `set @histTable` variable to the name of the problematic asset.
+
+Additionally, by default, this script **will not commit** its changes; to save changes, edit the _start_ of the script, uncommenting the `set @saveChanges = 1` statement.
+
