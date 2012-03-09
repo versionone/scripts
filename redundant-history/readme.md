@@ -1,7 +1,7 @@
 # Removing redundant history records from your VersionOne database
 
 ## Quick Start
-Run the scripts in this folder in this order:
+To remove any rundandant history in your VersionOne database, run these scripts in this order:
 
 1. remove-redundant-access-history
 	- _Edit the start of this script to set @saveChanges = 1_
@@ -14,6 +14,7 @@ Run the scripts in this folder in this order:
 
 
 ## Details
+
 ### Access Records
 The `Access` table records when each user accesses VersionOne, at most once per day.  If an integration does not send cookies in its API calls, it is possible for multiple accesses per day to be recorded.
 
