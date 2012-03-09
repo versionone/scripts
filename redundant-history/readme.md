@@ -1,7 +1,9 @@
 # Removing redundant history records from your VersionOne database
 
 ## Quick Start
-To remove any rundandant history in your VersionOne database, run these scripts in this order:
+
+### Removing Redundancy
+To remove any rundandant history in your VersionOne database, run these scripts **in this order**:
 
 1. remove-redundant-access-history
 	- _Edit the start of this script to set @saveChanges = 1_
@@ -12,8 +14,21 @@ To remove any rundandant history in your VersionOne database, run these scripts 
 4. remove-redundant-custom-history
 	- _Edit the end of this script to COMMIT instead of ROLLBACK_
 
+### Verifying Historical Integrity
+To identify problems in history, run these scripts:
 
-## Details
+1. check-history-coherency
+1. check-history-vs-now
+
+### Fixing Historical Integrity
+To fix problems in history, run this script:
+
+1. stitch
+	- _Edit the start of this script to set @histTable = an asset name_
+	- _Edit the start of this script to set @saveChanges = 1_
+
+
+## Details: Removing Redundancy
 
 ### Access Records
 The `Access` table records when each user accesses VersionOne, at most once per day.  If an integration does not send cookies in its API calls, it is possible for multiple accesses per day to be recorded.
@@ -48,7 +63,7 @@ By default, this script **will not commit** its changes; to save changes, edit t
 
 
 
-## Checking Historical Integrity
+## Details: Checking Historical Integrity
 These scripts do not modify the database in any way, but check for possible problems in the historical records.  VersionOne Support may ask you to run these as a diagnostic tool.
 
 Any problems identified by these scripts can be fixed by running the __stitch.sql__ script.
@@ -61,7 +76,7 @@ This script verifies that the _current_ records match the _last_ historical reco
 
 
 
-## Fixing Historical Integrity
+## Details: Fixing Historical Integrity
 #### stitch.sql
 This script fixes the sequenceing of historical records, and matches _current_ records to the _last_ historical records.
 
