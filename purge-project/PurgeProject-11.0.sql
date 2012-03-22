@@ -320,6 +320,7 @@ end
 -- doom MessageReceipts that are for doomed Messages
 insert @doomed
 select ID from MessageReceipt_Now join @doomed on doomed=MessageID
+except select doomed from @doomed
 
 -- doom Attachments on doomed assets
 insert @doomed 
@@ -900,9 +901,9 @@ select @error=@@ERROR; if @error<>0 goto ERR
 delete ScopeParentHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete Scope_Now from @doomed where doomed=ID
-select @error=@@ERROR; if @error<>0 goto ERR
-update Scope_Now set ParentID=null from @doomed where doomed=ParentID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+update Scope_Now set ParentID=null from @doomed where doomed=ParentID
+select @error=@@ERROR; if @error<>0 goto ERR
 update Scope_Now set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Scope_Now set TestSuiteID=null from @doomed where doomed=TestSuiteID
