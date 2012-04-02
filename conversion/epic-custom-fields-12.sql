@@ -70,14 +70,22 @@ if (@storyAttributeType <> @epicAttributeType) begin
 	goto ERR
 end
 
-declare @map table(StoryID int not null, EpicID int not null, primary key (StoryID))
+declare @map table(StoryID int not null, EpicID int not null, primary key (StoryID), unique (EpicID))
 
 insert @map
 select distinct MorphedFromID StoryID, ID EpicID
 from dbo.Epic
 where MorphedFromID is not null
 
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+
 if (@storyAttributeType='Boolean' and @epicAttributeType='Boolean') begin
+	if exists(select * from dbo.CustomBoolean where Definition=@epicDefinition) begin
+		raiserror('%s already contains data',16,5, @epicDefinition)
+		goto ERR
+	end
+	
 	insert dbo.CustomBoolean(Definition, ID, AuditBegin, AuditEnd, Value)
 	select @epicDefinition, EpicID, AuditBegin, AuditEnd, Value
 	from @map Map
@@ -85,6 +93,11 @@ if (@storyAttributeType='Boolean' and @epicAttributeType='Boolean') begin
 end
 
 if (@storyAttributeType='Date' and @epicAttributeType='Date') begin
+	if exists(select * from dbo.CustomDate where Definition=@epicDefinition) begin
+		raiserror('%s already contains data',16,6, @epicDefinition)
+		goto ERR
+	end
+	
 	insert dbo.CustomDate(Definition, ID, AuditBegin, AuditEnd, Value)
 	select @epicDefinition, EpicID, AuditBegin, AuditEnd, Value
 	from @map Map
@@ -92,6 +105,11 @@ if (@storyAttributeType='Date' and @epicAttributeType='Date') begin
 end
 
 if (@storyAttributeType='LongText' and @epicAttributeType='LongText') begin
+	if exists(select * from dbo.CustomLongText where Definition=@epicDefinition) begin
+		raiserror('%s already contains data',16,7, @epicDefinition)
+		goto ERR
+	end
+	
 	insert dbo.CustomLongText(Definition, ID, AuditBegin, AuditEnd, Value)
 	select @epicDefinition, EpicID, AuditBegin, AuditEnd, Value
 	from @map Map
@@ -99,6 +117,11 @@ if (@storyAttributeType='LongText' and @epicAttributeType='LongText') begin
 end
 
 if (@storyAttributeType='Numeric' and @epicAttributeType='Numeric') begin
+	if exists(select * from dbo.CustomNumeric where Definition=@epicDefinition) begin
+		raiserror('%s already contains data',16,8, @epicDefinition)
+		goto ERR
+	end
+	
 	insert dbo.CustomNumeric(Definition, ID, AuditBegin, AuditEnd, Value)
 	select @epicDefinition, EpicID, AuditBegin, AuditEnd, Value
 	from @map Map
@@ -106,6 +129,11 @@ if (@storyAttributeType='Numeric' and @epicAttributeType='Numeric') begin
 end
 
 if (@storyAttributeType='Text' and @epicAttributeType='Text') begin
+	if exists(select * from dbo.CustomText where Definition=@epicDefinition) begin
+		raiserror('%s already contains data',16,9, @epicDefinition)
+		goto ERR
+	end
+	
 	insert dbo.CustomText(Definition, ID, AuditBegin, AuditEnd, Value)
 	select @epicDefinition, EpicID, AuditBegin, AuditEnd, Value
 	from @map Map
@@ -115,6 +143,11 @@ end
 if (@storyAttributeType='Relation' and @epicAttributeType='Relation') begin
 	if (@storyRelatedTo <> @epicRelatedTo) begin
 		raiserror('Cannot convert %s (%s) to %s (%s)',16,4, @storyDefinition, @storyRelatedTo, @epicDefinition, @epicRelatedTo)
+		goto ERR
+	end
+	
+	if exists(select * from dbo.CustomRelation where Definition=@epicDefinition) begin
+		raiserror('%s already contains data',16,10, @epicDefinition)
 		goto ERR
 	end
 	
