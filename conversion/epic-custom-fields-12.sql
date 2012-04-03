@@ -92,7 +92,7 @@ if (@storyAttributeType='Boolean' and @epicAttributeType='Boolean') begin
 	join dbo.CustomBoolean on Definition=@storyDefinition and ID=StoryID
 end
 
-if (@storyAttributeType='Date' and @epicAttributeType='Date') begin
+else if (@storyAttributeType='Date' and @epicAttributeType='Date') begin
 	if exists(select * from dbo.CustomDate where Definition=@epicDefinition) begin
 		raiserror('%s already contains data',16,6, @epicDefinition)
 		goto ERR
@@ -104,7 +104,7 @@ if (@storyAttributeType='Date' and @epicAttributeType='Date') begin
 	join dbo.CustomDate on Definition=@storyDefinition and ID=StoryID
 end
 
-if (@storyAttributeType='LongText' and @epicAttributeType='LongText') begin
+else if (@storyAttributeType='LongText' and @epicAttributeType='LongText') begin
 	if exists(select * from dbo.CustomLongText where Definition=@epicDefinition) begin
 		raiserror('%s already contains data',16,7, @epicDefinition)
 		goto ERR
@@ -116,7 +116,7 @@ if (@storyAttributeType='LongText' and @epicAttributeType='LongText') begin
 	join dbo.CustomLongText on Definition=@storyDefinition and ID=StoryID
 end
 
-if (@storyAttributeType='Numeric' and @epicAttributeType='Numeric') begin
+else if (@storyAttributeType='Numeric' and @epicAttributeType='Numeric') begin
 	if exists(select * from dbo.CustomNumeric where Definition=@epicDefinition) begin
 		raiserror('%s already contains data',16,8, @epicDefinition)
 		goto ERR
@@ -128,7 +128,7 @@ if (@storyAttributeType='Numeric' and @epicAttributeType='Numeric') begin
 	join dbo.CustomNumeric on Definition=@storyDefinition and ID=StoryID
 end
 
-if (@storyAttributeType='Text' and @epicAttributeType='Text') begin
+else if (@storyAttributeType='Text' and @epicAttributeType='Text') begin
 	if exists(select * from dbo.CustomText where Definition=@epicDefinition) begin
 		raiserror('%s already contains data',16,9, @epicDefinition)
 		goto ERR
@@ -140,7 +140,7 @@ if (@storyAttributeType='Text' and @epicAttributeType='Text') begin
 	join dbo.CustomText on Definition=@storyDefinition and ID=StoryID
 end
 
-if (@storyAttributeType='Relation' and @epicAttributeType='Relation') begin
+else if (@storyAttributeType='Relation' and @epicAttributeType='Relation') begin
 	if (@storyRelatedTo <> @epicRelatedTo) begin
 		raiserror('Cannot convert %s (%s) to %s (%s)',16,4, @storyDefinition, @storyRelatedTo, @epicDefinition, @epicRelatedTo)
 		goto ERR
