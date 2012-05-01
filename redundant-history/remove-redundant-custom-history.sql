@@ -53,7 +53,7 @@ close C
 deallocate C
 
 exec dbo.AssetAudit_Rebuild
-
+DBCC DBREINDEX([AssetAudit])
 
 --commit
 rollback
