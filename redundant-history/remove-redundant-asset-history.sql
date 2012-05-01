@@ -95,8 +95,11 @@ while 1=1 begin
 	
 	select @error=error, @rowcount=[rowcount] from #results where Asset=@hist
 	if @error<>0 break
-	if @rowcount>0
+	if @rowcount>0 begin
 		print @rowcount + ' ' + @hist + ' historical records consolidated'
+
+		if @saveChanges=1 exec('DBCC DBREINDEX([' + @hist + '])')
+	end
 end
 
 close C; deallocate C
