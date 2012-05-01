@@ -45,6 +45,7 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' Access records restitched'
 
+if (@saveChanges = 1) DBCC DBREINDEX([Access])
 
 if (@saveChanges = 1) goto OK
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
