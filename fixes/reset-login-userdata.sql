@@ -9,7 +9,7 @@
  *        To commit changes, set @saveChanges = 1.
  */
 declare @saveChanges bit; --set @saveChanges = 1
-declare @supportedVersions varchar(1000); select @supportedVersions='10.2.*, 10.3.*, 11.*'
+declare @supportedVersions varchar(1000); select @supportedVersions='10.2.*, 10.3.*, 11.*, 12.*'
 declare @username varchar(1000); set @username = 'USERNAME-GOES-HERE'
 
 -- Ensure the correct database version
