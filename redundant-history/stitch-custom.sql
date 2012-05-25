@@ -49,6 +49,19 @@ print @rowcount + ' CustomBoolean records fixed'
 
 ;with A as (
 	select Definition, ID, AuditBegin, AuditEnd, Value, R=row_number() over(partition by Definition, ID order by AuditBegin)
+	from dbo.CustomDate
+)
+update A
+set AuditEnd=B.AuditBegin
+from A B
+where A.Definition=B.Definition and A.ID=B.ID and A.R+1=B.R and (A.AuditEnd is null or A.AuditEnd>B.AuditBegin)
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+print @rowcount + ' CustomDate records fixed'
+
+;with A as (
+	select Definition, ID, AuditBegin, AuditEnd, Value, R=row_number() over(partition by Definition, ID order by AuditBegin)
 	from dbo.CustomNumeric
 )
 update A
