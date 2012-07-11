@@ -57,7 +57,7 @@ while 1=1 begin
 		select @matchOffset = @matchOffset + 1
 	end
 	
-	else if (@name = '**') begin
+	else if (@name = '**') and (@join is null) begin
 		select @counter = 'C' + cast(@index as varchar(100))
 		select @counterValue = @counter + '.Value'
 		select @matchAt = case 
