@@ -42,6 +42,8 @@ while 1=1 begin
 	end
 	
 	if (datalength(@match) > 0) begin
+		if (@join is not null)
+			select @joinClause = @joinClause + char(10) + @join, @join = null
 		select @matchAt = case 
 			when @matchBase is null then cast(@matchOffset as varchar(100)) 
 			when @matchOffset>0 then '(' + @matchBase + '+' + cast(@matchOffset as varchar(100)) + ')'
@@ -64,13 +66,15 @@ while 1=1 begin
 			else @matchBase 
 		end
 		select @join = 'join Counter ' + @counter + ' on ' + @matchAt + '<=' + @counterValue + ' and ' + @counterValue + '<=datalength(Path)/4'
-		select @joinClause = @joinClause + ' ' + @join, @matchBase = @counterValue, @matchOffset = 0
+		select @matchBase = @counterValue, @matchOffset = 0
 	end
 	
 end
 close C; deallocate C
 
 if (datalength(@match) > 0) begin
+	if (@join is not null)
+		select @joinClause = @joinClause + char(10) + @join, @join = null
 	select @matchAt = case 
 		when @matchBase is null then cast(@matchOffset as varchar(100)) 
 		when @matchOffset>0 then '(' + @matchBase + '+' + cast(@matchOffset as varchar(100)) + ')'
