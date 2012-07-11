@@ -32,7 +32,7 @@ while 1=1 begin
 	--select @index, @id, @name
 	
 	if (@id is null and @name<>'*' and @name<>'**') begin
-		select @joinClause = '', @whereClause = ' where 1=2', @match = 0x
+		select @joinClause = '', @whereClause = char(10) + 'where 1=2', @match = 0x
 		break
 	end
 
@@ -48,7 +48,7 @@ while 1=1 begin
 			else @matchBase 
 		end
 		select @whereCondition = 'substring(Path,' + @matchAt + '*4+1,' + cast(datalength(@match) as varchar(100)) + ')=' + dbo.HexString(@match)
-		select @whereClause = @whereClause + case when @whereClause='' then ' where ' else ' and ' end + @whereCondition, @matchOffset = @matchOffset + datalength(@match)/4, @match = 0x
+		select @whereClause = @whereClause + char(10) + case when @whereClause='' then 'where ' else char(9) + 'and ' end + @whereCondition, @matchOffset = @matchOffset + datalength(@match)/4, @match = 0x
 	end
 	
 	if (@name = '*') begin
@@ -77,11 +77,11 @@ if (datalength(@match) > 0) begin
 		else @matchBase 
 	end
 	select @whereCondition = 'substring(Path,' + @matchAt + '*4+1,' + cast(datalength(@match) as varchar(100)) + ')=' + dbo.HexString(@match)
-	select @whereClause = @whereClause + case when @whereClause='' then ' where ' else ' and ' end + @whereCondition, @matchOffset = @matchOffset + datalength(@match)/4, @match = 0x
+	select @whereClause = @whereClause + char(10) + case when @whereClause='' then 'where ' else char(9) + 'and ' end + @whereCondition, @matchOffset = @matchOffset + datalength(@match)/4, @match = 0x
 end
 
 declare @sql varchar(8000)
-select @sql = 'select dbo.Profile_PathBinToStr(PV.Path) Path, PV.Value from dbo.ProfileValue PV' + @joinClause + @whereClause + ' order by 1'
+select @sql = 'select dbo.Profile_PathBinToStr(PV.Path) Path, PV.Value from dbo.ProfileValue PV' + @joinClause + @whereClause + char(10) + 'order by 1'
 
 print @sql
 exec(@sql)
