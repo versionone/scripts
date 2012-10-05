@@ -68,6 +68,11 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' blobs truncated'
 
+if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA='dbo' and ROUTINE_NAME='Thumbprint' and ROUTINE_TYPE='FUNCTION') begin
+	print 'drop function dbo.Thumbprint'
+	drop function dbo.Thumbprint
+end
+
 if (@saveChanges = 1) goto OK
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
 ERR: rollback tran TX
