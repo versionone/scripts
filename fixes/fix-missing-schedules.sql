@@ -1,5 +1,6 @@
 /*	
- *	Customer-facing SQL script template
+ *	Restore Schedules to Projects that were whacked by the D-07459 fix,
+ *	as documented in D-07471.
  *	
  *	NOTE:  This script defaults to rolling back changes.
  *		To commit changes, set @saveChanges = 1.
