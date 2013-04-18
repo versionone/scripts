@@ -6,7 +6,6 @@
  */
 declare @saveChanges bit; -- set @saveChanges = 1
 
-create table #baseassets(ID int not null, AuditID1 int not null, AuditID2 int not null, AuditID3 int not null)
 create table #suspect(ID int not null, AuditID1 int not null, AuditID2 int not null, AuditID3 int not null)
 create table #bad(ID int not null, AuditID1 int not null, AuditID2 int not null, AuditID3 int not null)
 
@@ -14,24 +13,20 @@ set nocount on; begin tran; save tran TX
 
 -- consecutive BaseAsset changes
 ;with H as (
-	select ID, AssetType, AuditID, R=ROW_NUMBER() OVER(partition by ID, AssetType order by AuditID)
+	select a.ID, a.AssetType, AuditID, R=ROW_NUMBER() OVER(partition by a.ID, a.AssetType order by AuditID)
 	from dbo.AssetAudit a
+),
+K as (
+	select a.ID, a.AssetType, AuditID, R, AssetState
+	from H a
+	join dbo.BaseAsset bA on bA.ID=a.ID and bA.AssetType=a.AssetType and bA.AuditBegin=a.AuditID
 )
-insert #baseassets(ID, AuditID1, AuditID2, AuditID3)
-select A.ID, A.AuditID AuditID1, B.AuditID AuditID2, C.AuditID AuditID3
-from H A
-join dbo.BaseAsset bA on bA.ID=A.ID and bA.AssetType=A.AssetType and bA.AuditBegin=A.AuditID
-join H B on B.ID=A.ID and B.AssetType=A.AssetType and B.R=A.R+1
-join dbo.BaseAsset bB on bB.ID=B.ID and bB.AssetType=B.AssetType and bB.AuditBegin=B.AuditID
-join H C on C.ID=B.ID and C.AssetType=B.AssetType and C.R=B.R+1
-join dbo.BaseAsset bC on bC.ID=C.ID and bC.AssetType=C.AssetType and bC.AuditBegin=C.AuditID
-
--- consecutive BaseAsset re-open/close
 insert #suspect(ID, AuditID1, AuditID2, AuditID3)
-select _.ID, AuditID1, AuditID2, AuditID3 from #baseassets _
-join dbo.BaseAsset A on A.ID=_.ID and A.AuditBegin=_.AuditID1 and A.AssetState=128
-join dbo.BaseAsset B on B.ID=_.ID and B.AuditBegin=_.AuditID2 and B.AssetState=64
-join dbo.BaseAsset C on C.ID=_.ID and C.AuditBegin=_.AuditID3 and C.AssetState=128
+select A.ID, A.AuditID AuditID1, B.AuditID AuditID2, C.AuditID AuditID3
+from K A
+join K B on B.ID=A.ID and B.AssetType=A.AssetType and B.R=A.R+1
+join K C on C.ID=B.ID and C.AssetType=B.AssetType and C.R=B.R+1
+where A.AssetState=128 and B.AssetState=64 and C.AssetState=128
 
 -- BaseAsset column comparison
 declare @colsAB varchar(max), @colsBC varchar(max)
@@ -117,4 +112,3 @@ DONE:
 
 drop table #bad
 drop table #suspect
-drop table #baseassets
