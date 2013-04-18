@@ -6,10 +6,13 @@
  */
 declare @saveChanges bit; -- set @saveChanges = 1
 
+create table #baseassets(ID int not null, AuditID1 int not null, AuditID2 int not null, AuditID3 int not null)
+create table #suspect(ID int not null, AuditID1 int not null, AuditID2 int not null, AuditID3 int not null)
+create table #bad(ID int not null, AuditID1 int not null, AuditID2 int not null, AuditID3 int not null)
+
 set nocount on; begin tran; save tran TX
 
 -- consecutive BaseAsset changes
-create table #baseassets(ID int not null, AuditID1 int not null, AuditID2 int not null, AuditID3 int not null)
 ;with H as (
 	select ID, AssetType, AuditID, R=ROW_NUMBER() OVER(partition by ID, AssetType order by AuditID)
 	from dbo.AssetAudit a
@@ -24,7 +27,6 @@ join H C on C.ID=B.ID and C.AssetType=B.AssetType and C.R=B.R+1
 join dbo.BaseAsset bC on bC.ID=C.ID and bC.AssetType=C.AssetType and bC.AuditBegin=C.AuditID
 
 -- consecutive BaseAsset re-open/close
-create table #suspect(ID int not null, AuditID1 int not null, AuditID2 int not null, AuditID3 int not null)
 insert #suspect(ID, AuditID1, AuditID2, AuditID3)
 select _.ID, AuditID1, AuditID2, AuditID3 from #baseassets _
 join dbo.BaseAsset A on A.ID=_.ID and A.AuditBegin=_.AuditID1 and A.AssetState=128
@@ -56,11 +58,10 @@ join dbo.BaseAsset B on B.ID=_.ID and B.AuditBegin=_.AuditID2
 join dbo.BaseAsset C on C.ID=_.ID and C.AuditBegin=_.AuditID3
 ' + @colsBC
 
-create table #bad(ID int not null, AuditID1 int not null, AuditID2 int not null, AuditID3 int not null)
 -- print @sql
 exec(@sql)
 
-declare @error int, @rowcount int
+declare @error int, @rowcount varchar(20)
 
 -- purge redundant rows
 delete dbo.BaseAsset
@@ -68,47 +69,52 @@ from #bad
 where BaseAsset.ID=#bad.ID and (BaseAsset.AuditBegin=#bad.AuditID2 or BaseAsset.AuditBegin=#bad.AuditID3)
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
-
-if @error=0 and @rowcount>0 begin
-	-- re-stitch BaseAsset history
-	;with H as (
-		select ID, AuditBegin, AuditEnd, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
-		from dbo.BaseAsset
-	)
-	update dbo.BaseAsset set AuditEnd=B.AuditBegin
-	from H A
-	left join H B on A.ID=B.ID and A.R+1=B.R
-	where BaseAsset.ID=A.ID and BaseAsset.AuditBegin=A.AuditBegin
-		and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)
-				
-	alter table dbo.BaseAsset_Now disable trigger all
-
-	-- sync up BaseAsset_Now with history tips from BaseAsset
-	update dbo.BaseAsset_Now set AuditBegin=BaseAsset.AuditBegin 
-	from dbo.BaseAsset
-	where BaseAsset.ID=BaseAsset_Now.ID and BaseAsset.AuditEnd is null and BaseAsset.AuditBegin<>BaseAsset_Now.AuditBegin
-
-	alter table dbo.BaseAsset_Now enable trigger all
-end
-
-drop table #bad
-drop table #suspect
-drop table #baseassets
-
 if @error<>0 goto ERR
-if @rowcount>0 begin
-	print cast(@rowcount as varchar(20)) + ' BaseAsset re-open/close historical records consolidated'
+print @rowcount + ' BaseAsset re-open/close historical records consolidated'
 
-	if @saveChanges=1 begin
-		DBCC DBREINDEX([BaseAsset])
+if @rowcount=0 goto FINISHED
 
-		exec dbo.AssetAudit_Rebuild
-		DBCC DBREINDEX([AssetAudit])
-	end
+-- re-stitch BaseAsset history
+;with H as (
+	select ID, AuditBegin, AuditEnd, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
+	from dbo.BaseAsset
+)
+update dbo.BaseAsset set AuditEnd=B.AuditBegin
+from H A
+left join H B on A.ID=B.ID and A.R+1=B.R
+where BaseAsset.ID=A.ID and BaseAsset.AuditBegin=A.AuditBegin
+	and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+print @rowcount + ' BaseAsset history records restitched'
+
+alter table dbo.BaseAsset_Now disable trigger all
+
+-- sync up BaseAsset_Now with history tips from BaseAsset
+update dbo.BaseAsset_Now set AuditBegin=BaseAsset.AuditBegin 
+from dbo.BaseAsset
+where BaseAsset.ID=BaseAsset_Now.ID and BaseAsset.AuditEnd is null and BaseAsset.AuditBegin<>BaseAsset_Now.AuditBegin
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+alter table dbo.BaseAsset_Now enable trigger all
+if @error<>0 goto ERR
+print @rowcount + ' BaseAsset_Now records syncd'
+
+if @saveChanges=1 begin
+	DBCC DBREINDEX([BaseAsset])
+
+	exec dbo.AssetAudit_Rebuild
+	DBCC DBREINDEX([AssetAudit])
 end
 
+FINISHED:
 if (@saveChanges = 1) goto OK
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
 ERR: rollback tran TX
 OK: commit
 DONE:
+
+drop table #bad
+drop table #suspect
+drop table #baseassets
