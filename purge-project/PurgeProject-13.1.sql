@@ -380,7 +380,7 @@ select MascotID from TeamRoom join @doomed on doomed=ID where MascotID is not nu
 
 -- doom Publications of doomed Members
 insert @doomed
-select ID from Publication_Now joined @doomed on doomed=AuthorID
+select ID from Publication_Now join @doomed on doomed=AuthorID
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
