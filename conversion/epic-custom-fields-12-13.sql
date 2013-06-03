@@ -10,10 +10,10 @@
  *	NOTE:  This script defaults to rolling back changes.
  *		To commit changes, set @saveChanges = 1.
  */
-declare @storyField varchar(100); --set @storyField='Custom_ITKahnbahn'
-declare @epicField varchar(100); --set @epicField='Custom_ITKahnbahn2'
+declare @storyField varchar(100); --set @storyField='Custom_SFDCAccountID'
+declare @epicField varchar(100); --set @epicField='Custom_aText'
 declare @saveChanges bit; --set @saveChanges = 1
-declare @supportedVersions varchar(1000); select @supportedVersions='12.*'
+declare @supportedVersions varchar(1000); select @supportedVersions='12.*, 13.*'
 
 -- Ensure the correct database version
 BEGIN
