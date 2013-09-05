@@ -340,6 +340,10 @@ while 1=1 begin
 	if @@ROWCOUNT=0 break
 end
 
+-- doom Expressions in doomed Conversations
+insert @doomed
+select distinct ID from Expression_Now join @doomed on doomed=BelongsToID
+
 -- doom ScopeLabels ever used by doomed Scopes, except those ever used by safe Scopes
 insert @doomed
 select distinct ScopeLabelID from ScopeScopeLabels join @doomed on doomed=ScopeID
@@ -484,19 +488,11 @@ print @rowcount + ' Labels purged'
 print 'Expressions'
 delete ExpressionMentions from @doomed where doomed=ExpressionID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete ExpressionConversationParticipants from @doomed where doomed=ExpressionID
-select @error=@@ERROR; if @error<>0 goto ERR
 delete Expression_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Expression_Now set InReplyToID=null from @doomed where doomed=InReplyToID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Expression_Now set AuthorID=null from @doomed where doomed=AuthorID
-select @error=@@ERROR; if @error<>0 goto ERR
-update Expression_Now set ConversationID=ID from @doomed where doomed=ConversationID
-select @error=@@ERROR; if @error<>0 goto ERR
-update Expression_Now set TeamRoomID=ID from @doomed where doomed=TeamRoomID
-select @error=@@ERROR; if @error<>0 goto ERR
-update Expression_Now set ExpressionSpaceID=ID from @doomed where doomed=ExpressionSpaceID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete Expression from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -504,13 +500,24 @@ update Expression set InReplyToID=null from @doomed where doomed=InReplyToID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Expression set AuthorID=null from @doomed where doomed=AuthorID
 select @error=@@ERROR; if @error<>0 goto ERR
-update Expression set ConversationID=ID from @doomed where doomed=ConversationID
-select @error=@@ERROR; if @error<>0 goto ERR
-update Expression set TeamRoomID=ID from @doomed where doomed=TeamRoomID
-select @error=@@ERROR; if @error<>0 goto ERR
-update Expression set ExpressionSpaceID=ID from @doomed where doomed=ExpressionSpaceID
-select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Expressions purged'
+
+print 'Conversations'
+delete ConversationParticipants from @doomed where doomed=ConversationID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete Conversation_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+update Conversation_Now set RoomID=null from @doomed where doomed=RoomID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Conversation_Now set ExpressionSpaceID=null from @doomed where doomed=ExpressionSpaceID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete Conversation from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Conversation set RoomID=null from @doomed where doomed=RoomID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Conversation set ExpressionSpaceID=null from @doomed where doomed=ExpressionSpaceID
+select @error=@@ERROR; if @error<>0 goto ERR
+print @rowcount + ' Conversations purged'
 
 print 'Notes'
 delete NoteInResponseToHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
@@ -1017,7 +1024,7 @@ delete TeamCapacityExcludedMembers from @doomed where doomed=MemberID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete WorkitemOwners from @doomed where doomed=MemberID
 select @error=@@ERROR; if @error<>0 goto ERR
-delete ExpressionConversationParticipants from @doomed where doomed=MemberID
+delete ConversationParticipants from @doomed where doomed=MemberID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete ExpressionSpaceFollowers from @doomed where doomed=MemberID
 select @error=@@ERROR; if @error<>0 goto ERR
