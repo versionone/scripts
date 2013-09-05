@@ -14,7 +14,7 @@ declare @allowRecursion bit; --set @allowRecursion = 1
 
 declare @error int, @rowcount varchar(20)
 set nocount on; begin tran; 
-exec sp_MSForEachTable @command1='disable trigger all on ?'
+exec sp_MSforeachtable @command1='disable trigger all on ?'
 save tran TX
 
 -- Ensure the correct database version
@@ -975,6 +975,6 @@ if (@saveChanges = 1) begin print 'Committing changes...'; goto OK end
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
 ERR: rollback tran TX
 OK: 
-exec sp_MSForEachTable @command1='enable trigger all on ?'
+exec sp_MSforeachtable @command1='enable trigger all on ?'
 commit
 print '=== Done ==='

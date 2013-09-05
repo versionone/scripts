@@ -21,7 +21,7 @@ if (@supportedVersion is not null) begin
 	end
 end
 
-exec sp_MSForEachTable @command1='disable trigger all on ?'
+exec sp_MSforeachtable @command1='disable trigger all on ?'
 
 declare @error int, @rowcount varchar(20)
 set nocount on; begin tran;
@@ -1037,6 +1037,6 @@ raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
 ERR: rollback tran TX
 OK:
 commit
-exec sp_MSForEachTable @command1='enable trigger all on ?'
+exec sp_MSforeachtable @command1='enable trigger all on ?'
 DONE:
 print '=== Done ==='
