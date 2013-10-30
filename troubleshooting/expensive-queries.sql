@@ -10,8 +10,8 @@
 	select top 10 query_hash
 		, sum(execution_count) total_execution_count
 
-		, round(convert(float,sum(total_worker_time))/1000000.0, 3) total_cpu_sec
-		, round(convert(float,sum(total_elapsed_time))/1000000.0, 3) total_duration_sec
+		, round(convert(float,sum(total_worker_time))/1000000.0, 0) total_cpu_sec
+		, round(convert(float,sum(total_elapsed_time))/1000000.0, 0) total_duration_sec
 		, sum(total_physical_reads) total_physical_reads
 		, sum(total_logical_reads) total_logical_reads
 		, sum(total_logical_writes) total_logical_writes
