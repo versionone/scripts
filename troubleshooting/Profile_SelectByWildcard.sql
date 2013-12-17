@@ -83,7 +83,10 @@ if (datalength(@match) > 0) begin
 		when @matchOffset>0 then '(' + @matchBase + '+' + cast(@matchOffset as varchar(100)) + ')'
 		else @matchBase 
 	end
-	select @whereCondition = 'substring(Path,' + @matchAt + '*4+1,' + cast(datalength(@match) as varchar(100)) + ')=' + dbo.HexString(@match)
+	if (@matchAt = '0')
+		select @whereCondition = dbo.HexString(@match) + '<=Path and Path<' + dbo.HexString(dbo.Profile_PathUpperBound(@match))
+	else
+		select @whereCondition = 'substring(Path,' + @matchAt + '*4+1,' + cast(datalength(@match) as varchar(100)) + ')=' + dbo.HexString(@match)
 	select @whereClause = @whereClause + char(10) + case when @whereClause='' then 'where ' else char(9) + 'and ' end + @whereCondition, @matchOffset = @matchOffset + datalength(@match)/4, @match = 0x
 end
 
