@@ -23,7 +23,7 @@ BEGIN
 	end
 END
 
-declare @error int, @rowcount varchar(20)
+declare @error int, @rowcount int
 set nocount on; begin tran; save tran TX
 
 
@@ -34,11 +34,11 @@ set nocount on; begin tran; save tran TX
 /* after every modifying statement, check for errors; optionally, emit status */
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-print @rowcount + ' foobars blah-blahed'
+raiserror('%d foobars blah-blahed', 0, 1, @rowcount) with nowait
 
 
-if (@saveChanges = 1) goto OK
-raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
-ERR: rollback tran TX
+if (@saveChanges = 1) begin raiserror('Committing changes', 0, 254); goto OK end
+raiserror('To commit changes, set @saveChanges=1',16,254)
+ERR: raiserror('Rolling back changes', 0, 255); rollback tran TX
 OK: commit
 DONE:
