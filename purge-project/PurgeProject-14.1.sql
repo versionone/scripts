@@ -278,7 +278,7 @@ except select safeTeam from @safeTeams
 
 -- doom Teams that are not safe
 insert @doomed
-select ID from BaseAsset_Now where AssetType='Team'
+select ID from Team_Now
 except select safeTeam from @safeTeams
 
 -- Members assigned to safe Scopes are safe
@@ -1050,6 +1050,13 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update Member set AvatarID=null from @doomed where doomed=AvatarID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Members purged'
+
+print 'Teams'
+delete Team_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete Team from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+print @rowcount + ' Teams purged'
 
 print 'BaseAssets'
 delete ExpressionMentions from @doomed where doomed=BaseAssetID
