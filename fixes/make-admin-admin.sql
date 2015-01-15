@@ -16,7 +16,7 @@ values(GETUTCDATE(),null,@str,null)
 
 select @auditid=SCOPE_IDENTITY()
 
-update Member_Now set AuditBegin=@audit, DefaultRoleID=1 where ID=20
+update Member_Now set AuditBegin=@auditid, DefaultRoleID=1 where ID=20
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
