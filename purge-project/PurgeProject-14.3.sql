@@ -841,8 +841,6 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Defects purged'
 
 print 'Stories'
-delete StoryDependencies from @doomed where doomed=StoryID1 or doomed=StoryID2
-select @error=@@ERROR; if @error<>0 goto ERR
 delete Story_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update Story_Now set IdentifiedInID=null from @doomed where doomed=IdentifiedInID
@@ -875,6 +873,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Epics purged'
 
 print 'PrimaryWorkitems'
+delete PrimaryWorkitemDependencies from @doomed where doomed=PrimaryWorkitemID1 or doomed=PrimaryWorkitemID2
+select @error=@@ERROR; if @error<>0 goto ERR
 delete BuildRunCompletesPrimaryWorkitems from @doomed where doomed=PrimaryWorkitemID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete ChangeSetPrimaryWorkitems from @doomed where doomed=PrimaryWorkitemID
