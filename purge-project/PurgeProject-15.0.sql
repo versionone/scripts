@@ -864,6 +864,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Stories purged'
 
 print 'Epics'
+delete StrategicThemeEpics from @doomed where doomed=EpicID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete IssueEpics from @doomed where doomed=EpicID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete IssueBlockedEpics from @doomed where doomed=EpicID
@@ -961,6 +963,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Timeboxes purged'
 
 print 'StrategicThemes'
+delete StrategicThemeEpics from @doomed where doomed=StrategicThemeID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete StrategicTheme_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 delete StrategicTheme from @doomed where doomed=ID
