@@ -394,6 +394,10 @@ select ID from Publication_Now join @doomed on doomed=AuthorID
 insert @doomed
 select ID from Grant_Now join @doomed on doomed=OwnerID
 
+--doom StrategicThemes in doomed Scopes
+insert @doomed
+select ID from StrategicTheme_Now join @doomed on doomed=ScopeID
+
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -955,6 +959,13 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update Timebox set OwnerID=null from @doomed where doomed=OwnerID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Timeboxes purged'
+
+print 'StrategicThemes'
+delete StrategicTheme_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete StrategicTheme from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+print @rowcount + ' StrategicThemes purged'
 
 print 'Scopes'
 delete BuildProjectScopes from @doomed where doomed=ScopeID
