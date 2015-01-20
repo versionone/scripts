@@ -13,7 +13,7 @@ declare @scopeToPurge int; --set @scopeToPurge = 54198
 declare @allowRecursion bit; --set @allowRecursion = 1
 
 -- Ensure the correct database version
-declare @supportedVersion varchar(10); set @supportedVersion = '14.2'
+declare @supportedVersion varchar(10); set @supportedVersion = '14.3'
 if (@supportedVersion is not null) begin
 	if not exists (select * from SystemConfig where Name='Version' and Value like @supportedVersion + '.%') begin
 		raiserror('This script can only run on a %s VersionOne database',16,1, @supportedVersion)
