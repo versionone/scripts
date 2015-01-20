@@ -390,6 +390,10 @@ select MascotID from Room join @doomed on doomed=ID where MascotID is not null
 insert @doomed
 select ID from Publication_Now join @doomed on doomed=AuthorID
 
+-- doom Grants belonging to doomed Members
+insert @doomed
+select ID from Grant_Now join @doomed on doomed=OwnerID
+
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -1017,6 +1021,13 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 delete Publication from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Publications purged'
+
+print 'Grants'
+delete Grant_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete Grant from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+print @rowcount + ' Grants purged'
 
 print 'Members'
 delete RoomParticipants from @doomed where doomed=MemberID
