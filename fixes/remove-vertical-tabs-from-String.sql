@@ -1,6 +1,9 @@
 /*	
  *	Remove Vertical Tab (ASCII 11) characters from String values.
- *	This does not fix LongString content!
+ *
+ *	NOTE: This updates strings in situ!
+ *
+ *	NOTE: This does not fix LongString content!
  *	
  *	NOTE:  This script defaults to rolling back changes.
  *		To commit changes, set @saveChanges = 1.
