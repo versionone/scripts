@@ -296,6 +296,30 @@ insert @doomed
 select ID from BaseAsset_Now join @doomed on doomed=SecurityScopeID
 except select doomed from @doomed
 
+-- doom Budgets attached to doomed Projects
+insert @doomed
+select ID from Budget_Now join @doomed on doomed=ScopeID
+except select doomed from @doomed
+
+-- doom Allocations for doomed Budgets and doomed Assets
+insert @doomed
+select ID from Allocation_Now join @doomed on doomed=BudgetID or doomed=AssetID
+
+-- doom child Allocations of doomed Allocations
+while 1=1 begin
+	insert @doomed
+	select ID from Allocation_Now join @doomed on doomed=ParentID
+	except select doomed from @doomed
+	if @@ROWCOUNT=0 break
+end
+
+-- doom Budgets that have only doomed Allocations
+insert @doomed
+select distinct BudgetID from Allocation_Now join @doomed on doomed=ID
+except
+select distinct BudgetID from Allocation_Now where ID not in (select doomed from @doomed)
+except select doomed from @doomed
+
 -- doom MessageReceipts that are for doomed Recipients
 insert @doomed
 select ID from MessageReceipt_Now join @doomed on doomed=RecipientID
@@ -970,6 +994,22 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 delete StrategicTheme from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' StrategicThemes purged'
+
+raiserror('Allocations', 0, 1) with nowait
+delete AllocationParentHierarchy from @doomed where doomed=AncestorID or doomed=DescendantID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete Allocation_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete Allocation from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s Allocations purged', 0, 1, @rowcount) with nowait
+
+raiserror('Budgets', 0, 1) with nowait
+delete Budget_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete Budget from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s Budgets purged', 0, 1, @rowcount) with nowait
 
 print 'Scopes'
 delete BuildProjectScopes from @doomed where doomed=ScopeID
