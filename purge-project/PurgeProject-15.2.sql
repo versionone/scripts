@@ -1045,6 +1045,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Grants purged'
 
 print 'Members'
+delete CommunityFollowers from @doomed where doomed=MemberID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete RoomParticipants from @doomed where doomed=MemberID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete MemberFollowers from @doomed where doomed=MemberID1 or doomed=MemberID2
@@ -1096,6 +1098,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' BaseAssets purged'
 
 print 'Rooms'
+delete RoomTopics from @doomed where doomed=RoomID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete RoomParticipants from @doomed where doomed=RoomID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete Room_Now from @doomed where doomed=ID
