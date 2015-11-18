@@ -1080,7 +1080,7 @@ print @rowcount + ' Publications purged'
 print 'Grants'
 delete Grant_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete Grant from @doomed where doomed=ID
+delete [Grant] from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' Grants purged'
 
