@@ -291,11 +291,6 @@ insert @doomed
 select distinct MemberID from ScopeMemberACL join @doomed on doomed=ScopeID where RoleID<>0 or Owner<>0
 except select safeMember from @safeMembers
 
--- doom BaseAssets that are secured by doomed Scopes
-insert @doomed
-select ID from BaseAsset_Now join @doomed on doomed=SecurityScopeID
-except select doomed from @doomed
-
 -- doom MessageReceipts that are for doomed Recipients
 insert @doomed
 select ID from MessageReceipt_Now join @doomed on doomed=RecipientID
@@ -397,6 +392,12 @@ select ID from Grant_Now join @doomed on doomed=OwnerID
 --doom StrategicThemes in doomed Scopes
 insert @doomed
 select ID from StrategicTheme_Now join @doomed on doomed=ScopeID
+
+-- doom BaseAssets that are secured by doomed Scopes
+-- NOTE: This should always be done as the last step, in case other secured items are added by more specific inserts
+insert @doomed
+select ID from BaseAsset_Now join @doomed on doomed=SecurityScopeID
+except select doomed from @doomed
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
