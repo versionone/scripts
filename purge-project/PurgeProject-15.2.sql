@@ -298,7 +298,7 @@ except select doomed from @doomed
 
 -- doom Allocations for doomed Budgets and doomed Assets
 insert @doomed
-select ID from Allocation_Now join @doomed on doomed=BudgetID or doomed=AssetID
+select DISTINCT ID from Allocation_Now join @doomed on doomed=BudgetID or doomed=AssetID
 
 -- doom child Allocations of doomed Allocations
 while 1=1 begin
