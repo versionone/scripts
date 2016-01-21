@@ -37,15 +37,10 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d Commit records deleted', 0, 1, @rowcount) with nowait
 
-DELETE FROM ActivityStream
-	WHERE
-	ActivityStream.ActivityId in (
-		SELECT a.ActivityId FROM #Commits
-			JOIN Activity a
-				ON cast(a.Body as varchar(max)) LIKE '%"GUID": "' + convert(nvarchar(50), CommitId) + '"%'
-			JOIN ActivityStream stream
-				ON a.ActivityId = stream.ActivityId
-		)
+DELETE FROM stream
+	FROM ActivityStream stream
+	JOIN Activity a on a.ActivityId = stream.ActivityId
+	JOIN #Commits c ON cast(a.Body as varchar(max)) LIKE '%"GUID": "' + convert(nvarchar(50), c.CommitId) + '"%'
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d ActivityStream records deleted', 0, 1, @rowcount) with nowait
