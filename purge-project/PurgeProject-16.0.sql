@@ -13,7 +13,7 @@ declare @scopeToPurge int; --set @scopeToPurge = 54198
 declare @allowRecursion bit; --set @allowRecursion = 1
 
 -- Ensure the correct database version
-declare @supportedVersion varchar(10); set @supportedVersion = '15.3'
+declare @supportedVersion varchar(10); set @supportedVersion = '16.0'
 if (@supportedVersion is not null) begin
 	if not exists (select * from SystemConfig where Name='Version' and Value like @supportedVersion + '.%') begin
 		raiserror('This script can only run on a %s VersionOne database',16,1, @supportedVersion)
@@ -1008,7 +1008,11 @@ raiserror('%s Allocations purged', 0, 1, @rowcount) with nowait
 raiserror('Budgets', 0, 1) with nowait
 delete Budget_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+update Budget_Now set ScopeLabelID=null from @doomed where doomed=ScopeLabelID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete Budget from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Budget set ScopeLabelID=null from @doomed where doomed=ScopeLabelID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Budgets purged', 0, 1, @rowcount) with nowait
 
