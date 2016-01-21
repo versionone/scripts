@@ -26,9 +26,9 @@ END
 declare @error int, @rowcount int
 set nocount on; begin tran; save tran TX
 
-CREATE table #Commits (CommitId uniqueidentifier, BucketId varchar(40), Payload varbinary(max))
+declare @Commits table(CommitId char(36) collate Latin1_General_BIN2 not null)
 DELETE FROM Commits
-	OUTPUT deleted.CommitId, deleted.BucketId, deleted.Payload into #Commits
+	OUTPUT deleted.CommitId into @Commits
 	WHERE
 	BucketId='Meta'
 	AND cast(Payload as varchar(max)) LIKE '%"EventType":"Changed"%'
@@ -37,22 +37,39 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d Commit records deleted', 0, 1, @rowcount) with nowait
 
-DELETE FROM stream
-	FROM ActivityStream stream
-	JOIN Activity a on a.ActivityId = stream.ActivityId
-	JOIN #Commits c ON cast(a.Body as varchar(max)) LIKE '%"GUID": "' + convert(nvarchar(50), c.CommitId) + '"%'
+declare @Activity table(
+	ActivityId uniqueidentifier not null,
+	GUID char(36) collate Latin1_General_BIN2 not null,
+	index IX_CommitId clustered(GUID)
+)
+
+insert @Activity(ActivityId, GUID)
+select ActivityId, upper(substring(Body, charindex('"GUID":"', Body) + 8, 36))
+from Activity
+
+DELETE FROM ActivityStream
+	WHERE
+	ActivityStream.ActivityId in (
+		SELECT a.ActivityId FROM @Commits
+			JOIN @Activity a
+				ON a.GUID = CommitId
+		)
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d ActivityStream records deleted', 0, 1, @rowcount) with nowait
 
+alter table dbo.ActivityStream nocheck constraint FK_ActivityStream_Activity
+
 DELETE FROM Activity
 	WHERE
 		ActivityId IN (
-			SELECT a.ActivityId from #Commits
-				JOIN Activity a
-					ON cast(a.Body as varchar(max)) LIKE '%"GUID": "' + convert(nvarchar(50), CommitId) + '"%'
+			SELECT a.ActivityId from @Commits
+				JOIN @Activity a
+					ON a.GUID = CommitId
 			)
+
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
+alter table dbo.ActivityStream with nocheck check constraint FK_ActivityStream_Activity
 if @error<>0 goto ERR
 raiserror('%d Activity records deleted', 0, 1, @rowcount) with nowait
 
