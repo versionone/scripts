@@ -928,9 +928,13 @@ delete PrimaryWorkitem_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 update PrimaryWorkitem_Now set SplitFromID=null from @doomed where doomed=SplitFromID
 select @error=@@ERROR; if @error<>0 goto ERR
+update PrimaryWorkitem_Now set ClassOfServiceID=null from @doomed where doomed=ClassOfServiceID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete PrimaryWorkitem from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update PrimaryWorkitem set SplitFromID=null from @doomed where doomed=SplitFromID
+select @error=@@ERROR; if @error<>0 goto ERR
+update PrimaryWorkitem set ClassOfServiceID=null from @doomed where doomed=ClassOfServiceID
 select @error=@@ERROR; if @error<>0 goto ERR
 print @rowcount + ' PrimaryWorkitems purged'
 
