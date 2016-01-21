@@ -26,10 +26,21 @@ END
 declare @error int, @rowcount int
 set nocount on; begin tran; save tran TX
 
+CREATE table #Commits (CommitId uniqueidentifier, BucketId varchar(40), Payload varbinary(max))
+DELETE FROM Commits
+	OUTPUT deleted.CommitId, deleted.BucketId, deleted.Payload into #Commits
+	WHERE
+	BucketId='Meta'
+	AND cast(Payload as varchar(max)) LIKE '%"EventType":"Changed"%'
+	AND cast(Payload as varchar(max)) LIKE '%"Changes":\[]%' ESCAPE '\';
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d Commit records deleted', 0, 1, @rowcount) with nowait
+
 DELETE FROM ActivityStream
 	WHERE
 	ActivityStream.ActivityId in (
-		SELECT a.ActivityId FROM Commits
+		SELECT a.ActivityId FROM #Commits
 			JOIN Activity a
 				ON cast(a.Body as varchar(max)) LIKE '%"GUID": "' + convert(nvarchar(50), CommitId) + '"%'
 			JOIN ActivityStream stream
@@ -46,7 +57,7 @@ raiserror('%d ActivityStream records deleted', 0, 1, @rowcount) with nowait
 DELETE FROM Activity
 	WHERE
 		ActivityId IN (
-			SELECT a.ActivityId from Commits
+			SELECT a.ActivityId from #Commits
 				JOIN Activity a
 					ON cast(a.Body as varchar(max)) LIKE '%"GUID": "' + convert(nvarchar(50), CommitId) + '"%'
 				WHERE
@@ -57,17 +68,6 @@ DELETE FROM Activity
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d Activity records deleted', 0, 1, @rowcount) with nowait
-
-DELETE FROM Commits
-	WHERE
-	BucketId='Meta'
-	AND cast(Payload as varchar(max)) LIKE '%"EventType":"Changed"%'
-	AND cast(Payload as varchar(max)) LIKE '%"Changes":\[]%' ESCAPE '\';
-
-select @rowcount=@@ROWCOUNT, @error=@@ERROR
-if @error<>0 goto ERR
-raiserror('%d Commit records deleted', 0, 1, @rowcount) with nowait
-
 
 if (@saveChanges = 1) begin raiserror('Committing changes', 0, 254); goto OK end
 raiserror('To commit changes, set @saveChanges=1',16,254)
