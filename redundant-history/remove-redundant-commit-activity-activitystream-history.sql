@@ -58,6 +58,8 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d ActivityStream records deleted', 0, 1, @rowcount) with nowait
 
+alter table dbo.ActivityStream nocheck constraint FK_ActivityStream_Activity
+
 DELETE FROM Activity
 	WHERE
 		ActivityId IN (
@@ -65,7 +67,9 @@ DELETE FROM Activity
 				JOIN @Activity a
 					ON a.GUID = CommitId
 			)
+
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
+alter table dbo.ActivityStream with nocheck check constraint FK_ActivityStream_Activity
 if @error<>0 goto ERR
 raiserror('%d Activity records deleted', 0, 1, @rowcount) with nowait
 
