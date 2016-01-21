@@ -45,10 +45,6 @@ DELETE FROM ActivityStream
 				ON cast(a.Body as varchar(max)) LIKE '%"GUID": "' + convert(nvarchar(50), CommitId) + '"%'
 			JOIN ActivityStream stream
 				ON a.ActivityId = stream.ActivityId
-			WHERE
-			BucketId='Meta'
-			AND cast(Payload as varchar(max)) LIKE '%"EventType":"Changed"%'
-			AND cast(Payload as varchar(max)) LIKE '%"Changes":\[]%' ESCAPE '\'
 		)
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
@@ -60,10 +56,6 @@ DELETE FROM Activity
 			SELECT a.ActivityId from #Commits
 				JOIN Activity a
 					ON cast(a.Body as varchar(max)) LIKE '%"GUID": "' + convert(nvarchar(50), CommitId) + '"%'
-				WHERE
-				BucketId='Meta'
-				AND cast(Payload as varchar(max)) LIKE '%"EventType":"Changed"%'
-				AND cast(Payload as varchar(max)) LIKE '%"Changes":\[]%' ESCAPE '\'
 			)
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
