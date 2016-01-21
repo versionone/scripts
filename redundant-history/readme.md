@@ -3,7 +3,7 @@
 ## Quick Start
 
 ### Removing Redundancy
-To remove any rundandant history in your VersionOne database, run these scripts **in this order**:
+To remove any redundant history in your VersionOne database, run these scripts **in this order**:
 
 1. remove-redundant-access-history
 	- _Edit the start of this script to set @saveChanges = 1_
@@ -13,6 +13,8 @@ To remove any rundandant history in your VersionOne database, run these scripts 
 	- _Edit the end of this script to COMMIT instead of ROLLBACK_
 4. remove-redundant-custom-history
 	- _Edit the end of this script to COMMIT instead of ROLLBACK_
+5. remove-redundant-commit-activity-activitystream-history
+	- _Edit the start of this script to set @saveChanges = 1_
 
 ### Verifying Historical Integrity
 To identify problems in history, run these scripts:
@@ -40,7 +42,7 @@ By default, this script **will not commit** its changes; to save changes, edit t
 
 
 ### Assets
-Saving assets multiples times without actual data changes can cause them to accumulate redundundant historical records.  This might occur, for example, with an integration that invokes the API to save assets that have not changed.
+Saving assets multiples times without actual data changes can cause them to accumulate redundant historical records.  This might occur, for example, with an integration that invokes the API to save assets that have not changed.
 
 #### remove-redundant-asset-history.sql
 This script removes duplication from every asset table.  Its output shows the number of actual records deleted.
@@ -52,12 +54,17 @@ By default, this script **will not commit** its changes; to save changes, edit t
 Custom attributes are stored separately from their assets, and can accumulate their own historical redundancy. Two scripts remove this redundancy:
 
 #### remove-custom-relation-redundancy.sql
-This script removes duplication from the `CustomRelation` table. Its output shows the amount of redundency before and after.
+This script removes duplication from the `CustomRelation` table. Its output shows the amount of redundancy before and after.
 
 By default, this script **will not commit** its changes; to save changes, edit the _end_ of the script to commit, instead of rollback.
 
 #### remove-redundant-custom-history.sql
-This script removes duplication from the `CustomBoolean`, `CustomDate`, `CustomLongText`, `CustomNumeric`, and `CustomText` tables.  Its output shows the amount of redundency before and after. It follows up by rebuilding the `AssetAudit` table, which is ultimately required after any modifications to history.
+This script removes duplication from the `CustomBoolean`, `CustomDate`, `CustomLongText`, `CustomNumeric`, and `CustomText` tables.  Its output shows the amount of redundancy before and after. It follows up by rebuilding the `AssetAudit` table, which is ultimately required after any modifications to history.
+
+By default, this script **will not commit** its changes; to save changes, edit the _end_ of the script to commit, instead of rollback.
+
+### Commits, Activity, and Activity Stream
+Updating an Asset without actual changes can cause historical records in the Commits, Activity, and ActivityStream tables. This script will delete the Commit records where the Payload contains no changes, and then take each of these deleted commit's `CommitId` and delete any Activity records with a Body containing this `CommitId`. Associated ActivityStream records are also deleted.
 
 By default, this script **will not commit** its changes; to save changes, edit the _end_ of the script to commit, instead of rollback.
 
@@ -83,4 +90,3 @@ This script fixes the sequenceing of historical records, and matches _current_ r
 To use this script, it must be edited to specify exactly _which_ asset's history to fix (as identified by one of the _check-history_ scripts).  Edit the _start_ of the script to `set @histTable` variable to the name of the problematic asset.
 
 Additionally, by default, this script **will not commit** its changes; to save changes, edit the _start_ of the script, uncommenting the `set @saveChanges = 1` statement.
-
