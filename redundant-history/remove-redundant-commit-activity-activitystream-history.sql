@@ -39,7 +39,7 @@ raiserror('%d Commit records deleted', 0, 1, @rowcount) with nowait
 
 declare @Activity table(
 	ActivityId uniqueidentifier not null,
-	GUID char(36) collate Latin1_General_BIN2 not null UNIQUE CLUSTERED
+	GUID char(36) collate Latin1_General_BIN2 not null
 )
 
 insert @Activity(ActivityId, GUID)
