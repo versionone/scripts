@@ -356,6 +356,14 @@ select ID from Attachment_Now join @doomed on doomed=AssetID
 insert @doomed
 select ID from Link_Now join @doomed on doomed=AssetID
 
+-- doom ExternalActions that have a doomed TriggerType
+insert @doomed
+select ID from ExternalAction_Now join @doomed on doomed=TriggerTypeID
+
+-- doom ExternalActionInvocations invoked on doomed assets or caused by doomed ExternalActions
+insert @doomed
+select ID from ExternalActionInvocation_Now join @doomed on doomed=InvokedOnID or doomed=CausedByID
+
 -- doom Notes about doomed assets or personal to doomed Members
 insert @doomed
 select ID from Note_Now join @doomed on doomed=AssetID
@@ -580,6 +588,20 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update Note set PersonalToID=null from @doomed where doomed=PersonalToID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Notes purged', 0, 1, @rowcount) with nowait
+
+raiserror('ExternalActionInvocations', 0, 1) with nowait
+delete ExternalActionInvocation_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete ExternalActionInvocation from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s ExternalActionInvocations purged', 0, 1, @rowcount) with nowait
+
+raiserror('ExternalActions', 0, 1) with nowait
+delete ExternalAction_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete ExternalAction from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s ExternalActions purged', 0, 1, @rowcount) with nowait
 
 raiserror('Links', 0, 1) with nowait
 delete Link_Now from @doomed where doomed=ID
