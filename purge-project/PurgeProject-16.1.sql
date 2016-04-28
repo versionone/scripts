@@ -337,6 +337,17 @@ insert @doomed
 select ID from MessageReceipt_Now join @doomed on doomed=MessageID
 except select doomed from @doomed
 
+--doom StrategicThemes in doomed Scopes
+insert @doomed
+select ID from StrategicTheme_Now join @doomed on doomed=ScopeID
+
+-- doom BaseAssets that are secured by doomed Scopes
+-- NOTE: This should always be done after all other BaseAsset types, in case other secured items are added by more specific inserts
+-- BUT before any non-BaseAsset that is doomed by a relation to BaseAsset
+insert @doomed
+select ID from BaseAsset_Now join @doomed on doomed=SecurityScopeID
+except select doomed from @doomed
+
 -- doom Attachments on doomed assets
 insert @doomed
 select ID from Attachment_Now join @doomed on doomed=AssetID
@@ -412,16 +423,6 @@ select ID from Publication_Now join @doomed on doomed=AuthorID
 -- doom Grants belonging to doomed Members
 insert @doomed
 select ID from Grant_Now join @doomed on doomed=OwnerID
-
---doom StrategicThemes in doomed Scopes
-insert @doomed
-select ID from StrategicTheme_Now join @doomed on doomed=ScopeID
-
--- doom BaseAssets that are secured by doomed Scopes
--- NOTE: This should always be done as the last step, in case other secured items are added by more specific inserts
-insert @doomed
-select ID from BaseAsset_Now join @doomed on doomed=SecurityScopeID
-except select doomed from @doomed
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
