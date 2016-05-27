@@ -5,7 +5,7 @@
  *		To commit changes, set @saveChanges = 1.
  */
 declare @saveChanges bit; --set @saveChanges = 1
-declare @supportedVersions varchar(1000); select @supportedVersions='15.*'
+declare @supportedVersions varchar(1000); select @supportedVersions='15.*, 16.*'
 
 -- Ensure the correct database version
 BEGIN
@@ -27,12 +27,14 @@ declare @error int, @rowcount int
 set nocount on; begin tran; save tran TX
 
 declare @Commits table(CommitId char(36) collate Latin1_General_BIN2 not null)
-DELETE FROM Commits
-	OUTPUT deleted.CommitId into @Commits
+INSERT INTO @Commits SELECT CommitId FROM Commits
 	WHERE
 	BucketId='Meta'
 	AND cast(Payload as varchar(max)) LIKE '%"EventType":"Changed"%'
 	AND cast(Payload as varchar(max)) LIKE '%"Changes":\[]%' ESCAPE '\';
+
+DELETE FROM Commits WHERE CommitId IN (SELECT CommitId FROM @Commits)
+
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d Commit records deleted', 0, 1, @rowcount) with nowait
@@ -40,7 +42,7 @@ raiserror('%d Commit records deleted', 0, 1, @rowcount) with nowait
 declare @Activity table(
 	ActivityId uniqueidentifier not null,
 	GUID char(36) collate Latin1_General_BIN2 not null,
-	index IX_CommitId clustered(GUID)
+	primary key (GUID, ActivityId)
 )
 
 insert @Activity(ActivityId, GUID)
