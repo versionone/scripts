@@ -265,7 +265,8 @@ from dbo.Room h
 where h.ID=Room_Now.ID and h.AuditEnd is null and h.Description is not null and (h.Description<>Room_Now.Description or Room_Now.Description is null)
 alter table dbo.Room_Now enable trigger all
 
-commit
+--commit
+rollback
 GO
 
 drop table #Bad
