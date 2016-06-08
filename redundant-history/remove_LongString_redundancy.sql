@@ -253,6 +253,18 @@ set Value=GoodID
 from #Bad
 where Value=BadID
 
+update dbo.Room
+set Description=GoodID
+from #Bad
+where Description=BadID
+
+alter table dbo.Room_Now disable trigger all
+update dbo.Room_Now
+set Description=h.Description
+from dbo.Room h
+where h.ID=Room_Now.ID and h.AuditEnd is null and h.Description is not null and (h.Description<>Room_Now.Description or Room_Now.Description is null)
+alter table dbo.Room_Now enable trigger all
+
 commit
 GO
 
