@@ -46,7 +46,7 @@ select '''+@custom+''' TableName, Total, Duplicate, Duplicate*100.0/nullif(Total
 DBCC DBREINDEX (['+@custom+'])
 '
 
-	print @sql
+	--print @sql
 	exec(@sql);
 end
 close C
