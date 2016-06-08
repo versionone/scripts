@@ -116,6 +116,66 @@ from dbo.Defect h
 where h.ID=Defect_Now.ID and h.AuditEnd is null and h.Resolution is not null and (h.Resolution<>Defect_Now.Resolution or Defect_Now.Resolution is null)
 alter table dbo.Defect_Now enable trigger all
 
+update dbo.Test
+set Setup=GoodID
+from #Bad
+where Setup=BadID
+
+alter table dbo.Test_Now disable trigger all
+update dbo.Test_Now
+set Setup=h.Setup
+from dbo.Test h
+where h.ID=Test_Now.ID and h.AuditEnd is null and h.Setup is not null and (h.Setup<>Test_Now.Setup or Test_Now.Setup is null)
+alter table dbo.Test_Now enable trigger all
+
+update dbo.Test
+set Inputs=GoodID
+from #Bad
+where Inputs=BadID
+
+alter table dbo.Test_Now disable trigger all
+update dbo.Test_Now
+set Inputs=h.Inputs
+from dbo.Test h
+where h.ID=Test_Now.ID and h.AuditEnd is null and h.Inputs is not null and (h.Inputs<>Test_Now.Inputs or Test_Now.Inputs is null)
+alter table dbo.Test_Now enable trigger all
+
+update dbo.Test
+set Steps=GoodID
+from #Bad
+where Steps=BadID
+
+alter table dbo.Test_Now disable trigger all
+update dbo.Test_Now
+set Steps=h.Steps
+from dbo.Test h
+where h.ID=Test_Now.ID and h.AuditEnd is null and h.Steps is not null and (h.Steps<>Test_Now.Steps or Test_Now.Steps is null)
+alter table dbo.Test_Now enable trigger all
+
+update dbo.Test
+set ExpectedResults=GoodID
+from #Bad
+where ExpectedResults=BadID
+
+alter table dbo.Test_Now disable trigger all
+update dbo.Test_Now
+set ExpectedResults=h.ExpectedResults
+from dbo.Test h
+where h.ID=Test_Now.ID and h.AuditEnd is null and h.ExpectedResults is not null and (h.ExpectedResults<>Test_Now.ExpectedResults or Test_Now.ExpectedResults is null)
+alter table dbo.Test_Now enable trigger all
+
+update dbo.Test
+set ActualResults=GoodID
+from #Bad
+where ActualResults=BadID
+
+alter table dbo.Test_Now disable trigger all
+update dbo.Test_Now
+set ActualResults=h.ActualResults
+from dbo.Test h
+where h.ID=Test_Now.ID and h.AuditEnd is null and h.ActualResults is not null and (h.ActualResults<>Test_Now.ActualResults or Test_Now.ActualResults is null)
+alter table dbo.Test_Now enable trigger all
+
 update dbo.Retrospective
 set Summary=GoodID
 from #Bad
