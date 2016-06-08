@@ -200,6 +200,54 @@ from dbo.Subscription h
 where h.ID=Subscription_Now.ID and h.AuditEnd is null and h.Description is not null and (h.Description<>Subscription_Now.Description or Subscription_Now.Description is null)
 alter table dbo.Subscription_Now enable trigger all
 
+update dbo.RegressionTest
+set Setup=GoodID
+from #Bad
+where Setup=BadID
+
+alter table dbo.RegressionTest_Now disable trigger all
+update dbo.RegressionTest_Now
+set Setup=h.Setup
+from dbo.RegressionTest h
+where h.ID=RegressionTest_Now.ID and h.AuditEnd is null and h.Setup is not null and (h.Setup<>RegressionTest_Now.Setup or RegressionTest_Now.Setup is null)
+alter table dbo.RegressionTest_Now enable trigger all
+
+update dbo.RegressionTest
+set Inputs=GoodID
+from #Bad
+where Inputs=BadID
+
+alter table dbo.RegressionTest_Now disable trigger all
+update dbo.RegressionTest_Now
+set Inputs=h.Inputs
+from dbo.RegressionTest h
+where h.ID=RegressionTest_Now.ID and h.AuditEnd is null and h.Inputs is not null and (h.Inputs<>RegressionTest_Now.Inputs or RegressionTest_Now.Inputs is null)
+alter table dbo.RegressionTest_Now enable trigger all
+
+update dbo.RegressionTest
+set Steps=GoodID
+from #Bad
+where Steps=BadID
+
+alter table dbo.RegressionTest_Now disable trigger all
+update dbo.RegressionTest_Now
+set Steps=h.Steps
+from dbo.RegressionTest h
+where h.ID=RegressionTest_Now.ID and h.AuditEnd is null and h.Steps is not null and (h.Steps<>RegressionTest_Now.Steps or RegressionTest_Now.Steps is null)
+alter table dbo.RegressionTest_Now enable trigger all
+
+update dbo.RegressionTest
+set ExpectedResults=GoodID
+from #Bad
+where ExpectedResults=BadID
+
+alter table dbo.RegressionTest_Now disable trigger all
+update dbo.RegressionTest_Now
+set ExpectedResults=h.ExpectedResults
+from dbo.RegressionTest h
+where h.ID=RegressionTest_Now.ID and h.AuditEnd is null and h.ExpectedResults is not null and (h.ExpectedResults<>RegressionTest_Now.ExpectedResults or RegressionTest_Now.ExpectedResults is null)
+alter table dbo.RegressionTest_Now enable trigger all
+
 update dbo.CustomLongText
 set Value=GoodID
 from #Bad
