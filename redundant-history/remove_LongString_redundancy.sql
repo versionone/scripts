@@ -17,15 +17,14 @@ GO
 create table #Bad (BadID int not null primary key, GoodID int not null)
 
 insert #Bad(BadID, GoodID)
-select BadID, GoodID from (
-	select me.ID BadID, MIN(other.ID) GoodID
-	from dbo.LongString me
-	join dbo.LongString other on other.ID<me.ID and other.md5=me.md5
-	group by me.ID
+select me.ID BadID, _.ID GoodID
+from dbo.LongString me
+cross apply (
+	select top 1 other.ID
+	from dbo.LongString other
+	where other.md5=me.md5 and other.ID<me.ID and cast(other.Value as nvarchar(max))=cast(me.Value as nvarchar(max))
+	order by other.ID
 ) _
-join dbo.LongString bad on bad.ID=BadID
-join dbo.LongString good on good.ID=GoodID
-where cast(good.Value as nvarchar(max))=cast(bad.Value as nvarchar(max))
 insert #results values('#Bad', @@ROWCOUNT)
 GO
 
