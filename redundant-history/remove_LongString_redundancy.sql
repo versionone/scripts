@@ -310,6 +310,8 @@ alter table dbo.Room_Now enable trigger all
 
 select * from #results
 
+exec dbo.AssetLongString_Populate
+
 --commit
 rollback
 GO
