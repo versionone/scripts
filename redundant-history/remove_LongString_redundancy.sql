@@ -299,6 +299,34 @@ where h.ID=Room_Now.ID and h.AuditEnd is null and h.Description is not null and 
 insert #results values('Room_Now.Description', @@ROWCOUNT)
 alter table dbo.Room_Now enable trigger all
 
+update dbo.Note
+set Content=GoodID
+from #Bad
+where Content=BadID
+insert #results values('Note.Content', @@ROWCOUNT)
+
+alter table dbo.Note_Now disable trigger all
+update dbo.Note_Now
+set Content=h.Content
+from dbo.Note h
+where h.ID=Note_Now.ID and h.AuditEnd is null and h.Content is not null and (h.Content<>Note_Now.Content or Note_Now.Content is null)
+insert #results values('Note_Now.Content', @@ROWCOUNT)
+alter table dbo.Note_Now enable trigger all
+
+update dbo.Snapshot
+set Description=GoodID
+from #Bad
+where Description=BadID
+insert #results values('Snapshot.Description', @@ROWCOUNT)
+
+alter table dbo.Snapshot_Now disable trigger all
+update dbo.Snapshot_Now
+set Description=h.Description
+from dbo.Snapshot h
+where h.ID=Snapshot_Now.ID and h.AuditEnd is null and h.Description is not null and (h.Description<>Snapshot_Now.Description or Snapshot_Now.Description is null)
+insert #results values('Snapshot_Now.Description', @@ROWCOUNT)
+alter table dbo.Snapshot_Now enable trigger all
+
 select * from #results
 
 exec dbo.AssetLongString_Populate
