@@ -1,38 +1,29 @@
 set nocount on
 create table #results (tbl sysname not null, [rowcount] int not null)
-GO
 
-alter table dbo.LongString add md5 binary(16) null
-GO
+create table #hash (ID int not null, md5 binary(16) not null)
+create clustered index ix_hash_md5_id on #hash(md5, ID)
 
-update dbo.LongString set md5=sys.fn_repl_hash_binary(cast(cast(Value as nvarchar(max)) as varbinary(max)))
-GO
-
-alter table dbo.LongString alter column md5 binary(16) not null
-GO
-
-create index ix_md5_id on dbo.LongString(md5, ID)
-GO
+insert #hash(ID, md5)
+select ID, md5=sys.fn_repl_hash_binary(cast(cast(Value as nvarchar(max)) as varbinary(max)))
+from dbo.LongString
 
 create table #Bad (BadID int not null primary key, GoodID int not null)
 
 insert #Bad(BadID, GoodID)
 select me.ID BadID, _.ID GoodID
 from dbo.LongString me
+join #hash my_hash on my_hash.ID=me.ID
 cross apply (
 	select top 1 other.ID
 	from dbo.LongString other
-	where other.md5=me.md5 and other.ID<me.ID and cast(other.Value as nvarchar(max))=cast(me.Value as nvarchar(max))
+	join #hash other_hash on other_hash.ID=other.ID and other_hash.md5=my_hash.md5
+	where other.ID<me.ID and cast(other.Value as nvarchar(max))=cast(me.Value as nvarchar(max))
 	order by other.ID
 ) _
 insert #results values('#Bad', @@ROWCOUNT)
-GO
 
-drop index ix_md5_id on dbo.LongString
-GO
-
-alter table dbo.LongString drop column md5
-GO
+drop table #hash
 
 begin tran
 
@@ -314,9 +305,6 @@ exec dbo.AssetLongString_Populate
 
 --commit
 rollback
-GO
 
 drop table #Bad
-GO
-
 drop table #results
