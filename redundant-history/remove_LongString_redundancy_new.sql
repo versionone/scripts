@@ -41,30 +41,14 @@ declare @asset sysname, @attr sysname, @tbl sysname
 begin tran; save tran TX
 
 declare C cursor local fast_forward for
-	select 'List' asset,'Description' attr
-	union all select 'ExternalAction','Description'
-	union all select 'Label','Description'
-	union all select 'BaseAsset','Description'
-	union all select 'Application','Description'
-	union all select 'Issue','Resolution'
-	union all select 'Request','Resolution'
-	union all select 'Story','Benefits'
-	union all select 'Defect','Resolution'
-	union all select 'Test','Setup'
-	union all select 'Test','Inputs'
-	union all select 'Test','Steps'
-	union all select 'Test','ExpectedResults'
-	union all select 'Test','ActualResults'
+	select AT.Name, AD.Name
+	from dbo.AttributeDefinition_Now AD, dbo.AssetType_Now AT
+	where AttributeType='LongText'
+	and AT.ID=AD.AssetID
+	and NativeValue=0 and AD.IsCustom=0
+	-- existing data from former asset types
 	union all select 'Note','Content'
-	union all select 'Attachment','Description'
 	union all select 'Snapshot','Description'
-	union all select 'Retrospective','Summary'
-	union all select 'Subscription','Description'
-	union all select 'RegressionTest','Setup'
-	union all select 'RegressionTest','Inputs'
-	union all select 'RegressionTest','Steps'
-	union all select 'RegressionTest','ExpectedResults'
-	union all select 'Room','Description'
 
 open C
 while 1=1 begin
