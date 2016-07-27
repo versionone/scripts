@@ -134,6 +134,7 @@ if @saveChanges=1 begin
 	select @error=@@ERROR, @rowcount=@@ROWCOUNT
 	if @error=0 begin
 		print @rowcount + ' redundant LongString records deleted'
+		exec('DBCC DBREINDEX([LongString])')
 		goto CLEANED
 	end
 	print 'redundant LongString records remain'
