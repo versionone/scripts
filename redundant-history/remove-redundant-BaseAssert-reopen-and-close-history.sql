@@ -38,13 +38,13 @@ declare @colsAB varchar(max), @colsBC varchar(max)
 select @colsAB=(
 	select REPLACE(' and (A.{col}=B.{col} or (A.{col} is null and B.{col} is null))', '{col}', quotename(COLUMN_NAME))
 	from INFORMATION_SCHEMA.COLUMNS C 
-	where C.TABLE_NAME='BaseAsset_Now' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'AssetState')
+	where C.TABLE_NAME='BaseAsset_Now' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'AssetState', 'ClosedAuditID')
 	for xml path('')
 )
 select @colsBC=(
 	select REPLACE(' and (B.{col}=C.{col} or (B.{col} is null and C.{col} is null))', '{col}', quotename(COLUMN_NAME))
 	from INFORMATION_SCHEMA.COLUMNS C 
-	where C.TABLE_NAME='BaseAsset_Now' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'AssetState')
+	where C.TABLE_NAME='BaseAsset_Now' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'AssetState', 'ClosedAuditID')
 	for xml path('')
 )
 
