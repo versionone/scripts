@@ -1064,9 +1064,9 @@ update Scope_Now set TestSuiteID=null from @doomed where doomed=TestSuiteID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Scope_Now set ScheduleID=null from @doomed where doomed=ScheduleID
 select @error=@@ERROR; if @error<>0 goto ERR
-update Scope_Now set ScheduleID=null from @doomed where doomed=SchemeID
+update Scope_Now set SchemeID=null from @doomed where doomed=SchemeID
 select @error=@@ERROR; if @error<>0 goto ERR
-update Scope_Now set ScheduleID=null from @doomed where doomed=PlanningLevelID
+update Scope_Now set PlanningLevelID=null from @doomed where doomed=PlanningLevelID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete Scope from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
@@ -1078,9 +1078,9 @@ update Scope set TestSuiteID=null from @doomed where doomed=TestSuiteID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Scope set ScheduleID=null from @doomed where doomed=ScheduleID
 select @error=@@ERROR; if @error<>0 goto ERR
-update Scope set ScheduleID=null from @doomed where doomed=SchemeID
+update Scope set SchemeID=null from @doomed where doomed=SchemeID
 select @error=@@ERROR; if @error<>0 goto ERR
-update Scope set ScheduleID=null from @doomed where doomed=PlanningLevelID
+update Scope set PlanningLevelID=null from @doomed where doomed=PlanningLevelID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Scopes purged', 0, 1, @rowcount) with nowait
 
