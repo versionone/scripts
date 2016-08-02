@@ -674,7 +674,22 @@ delete BuildProject from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s BuildProjects purged', 0, 1, @rowcount) with nowait
 
+raiserror('Bundles', 0, 1) with nowait
+delete BundleChangeSets from @doomed where doomed=BundleID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete Bundle_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+update Bundle_Now set PhaseID=null from @doomed where doomed=PhaseID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete Bundle from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Bundle set PhaseID=null from @doomed where doomed=PhaseID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s Bundles purged', 0, 1, @rowcount) with nowait
+
 raiserror('ChangeSets', 0, 1) with nowait
+delete BundleChangeSets from @doomed where doomed=ChangeSetID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete BuildRunChangeSets from @doomed where doomed=ChangeSetID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete ChangeSetPrimaryWorkitems from @doomed where doomed=ChangeSetID
