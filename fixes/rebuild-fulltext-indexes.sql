@@ -9,7 +9,9 @@ GO
 
 exec dbo._DropFullTextCatalogs
 exec dbo._AddFullTextIndex 'String.Value'
+exec dbo._AddFullTextIndex 'String.Value_'
 exec dbo._AddFullTextIndex 'LongString.Value'
+exec dbo._AddFullTextIndex 'LongString.Value_'
 GO
 
 -- Enable Full Text Indexes
