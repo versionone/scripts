@@ -362,7 +362,7 @@ select ID from ExternalAction_Now join @doomed on doomed=TriggerTypeID
 
 -- doom ExternalActionInvocations invoked on doomed assets or caused by doomed ExternalActions or have a doomed TriggerType
 insert @doomed
-select ID from ExternalActionInvocation_Now join @doomed on doomed=InvokedOnID or doomed=CausedByID or doomed=TriggerTypeID
+select ID from ExternalActionInvocation_Now join @doomed on doomed=InvokedOnID or doomed=CausedByID
 
 -- doom Notes about doomed assets or personal to doomed Members
 insert @doomed
