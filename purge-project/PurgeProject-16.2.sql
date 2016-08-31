@@ -360,7 +360,7 @@ select ID from Link_Now join @doomed on doomed=AssetID
 insert @doomed
 select ID from ExternalAction_Now join @doomed on doomed=TriggerTypeID
 
--- doom ExternalActionInvocations invoked on doomed assets or caused by doomed ExternalActions or have a doomed TriggerType
+-- doom ExternalActionInvocations invoked on doomed assets or caused by doomed ExternalActions
 insert @doomed
 select ID from ExternalActionInvocation_Now join @doomed on doomed=InvokedOnID or doomed=CausedByID
 
