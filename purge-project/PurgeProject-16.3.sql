@@ -1071,7 +1071,7 @@ delete Roadmap_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 delete Roadmap from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
-raiserror('%s Budgets purged', 0, 1, @rowcount) with nowait
+raiserror('%s Roadmaps purged', 0, 1, @rowcount) with nowait
 
 raiserror('Scopes', 0, 1) with nowait
 delete BuildProjectScopes from @doomed where doomed=ScopeID
