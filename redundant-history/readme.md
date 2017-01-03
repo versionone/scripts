@@ -5,15 +5,17 @@
 ### Removing Redundancy
 To remove any redundant history in your VersionOne database, run these scripts **in this order**:
 
-1. remove-redundant-access-history
+1. remove_LongString_redundancy_new
 	- _Edit the start of this script to set @saveChanges = 1_
-2. remove-redundant-asset-history
+2. remove-redundant-access-history
 	- _Edit the start of this script to set @saveChanges = 1_
-3. remove-custom-relation-redundancy
+3. remove-redundant-asset-history
+	- _Edit the start of this script to set @saveChanges = 1_
+4. remove-custom-relation-redundancy
 	- _Edit the end of this script to COMMIT instead of ROLLBACK_
-4. remove-redundant-custom-history
+5. remove-redundant-custom-history
 	- _Edit the end of this script to COMMIT instead of ROLLBACK_
-5. remove-redundant-commit-activity-activitystream-history
+6. remove-redundant-commit-activity-activitystream-history
 	- _Edit the start of this script to set @saveChanges = 1_
 
 ### Verifying Historical Integrity
@@ -31,6 +33,15 @@ To fix problems in history, run this script:
 
 
 ## Details: Removing Redundancy
+
+### LongString records
+The `LongString` table stores text blob values for Long Text attibues of various assets. Repeatedly updating a Long Text attibute on an asset with the same value results in a new text blob being saved for that value each time, leading to asset history redundancy. To detect and remove this redundant asset history, existing text blob references to duplicate values need to be remaped to point to same unique blob values.
+
+### remove_LongString_redundancy_new.sql
+This script removes duplicate entries from the `LongString` table, and remaps references to these duplicates across all Long Text attributes to point to the remaining unique values.
+
+By default, this script **will not commit** its changes; to save changes, edit the _start_ of the script, uncommenting the `set @saveChanges = 1` statement.
+
 
 ### Access Records
 The `Access` table records when each user accesses VersionOne, at most once per day.  If an integration does not send cookies in its API calls, it is possible for multiple accesses per day to be recorded.
