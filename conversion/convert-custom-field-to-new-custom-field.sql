@@ -18,15 +18,15 @@ declare @map table (
 	rcID int
 );
 insert @map select dr.ID, rc.ID from
-	(select List_Now.ID, Value name from List_Now join String on String.ID = Name where AssetType = @originalListTypeName and AssetState < 128) dr join
-	(select  List_Now.ID, Value name from List_Now join String on String.ID = Name where AssetType = @newListTypeName and AssetState < 128) rc
+	(select List_Now.ID, Value name from dbo.List_Now join dbo.String on String.ID = Name where AssetType = @originalListTypeName and AssetState < 128) dr join
+	(select List_Now.ID, Value name from dbo.List_Now join dbo.String on String.ID = Name where AssetType = @newListTypeName and AssetState < 128) rc
 	on dr.name = rc.name;
 
-insert CustomRelation (Definition, PrimaryID, ForeignID, AuditBegin, AuditEnd)
+insert dbo.CustomRelation (Definition, PrimaryID, ForeignID, AuditBegin, AuditEnd)
 	select Definition=@newCustomFieldName, PrimaryID, ForeignID = rcID, AuditBegin, AuditEnd
-		 from CustomRelation cr join @map map on map.drID = ForeignID
+		 from dbo.CustomRelation cr join @map map on map.drID = ForeignID
 		 where Definition = @originalCustomFieldName
-		 and not exists (select * from CustomRelation where Definition = @newCustomFieldName and PrimaryID = cr.PrimaryID);
+		 and not exists (select * from dbo.CustomRelation where Definition = @newCustomFieldName and PrimaryID = cr.PrimaryID);
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d %s records migrated to %s', 0, 1, @rowcount, @originalCustomFieldName, @newCustomFieldName) with nowait
