@@ -2,8 +2,8 @@
 
 ## Quick Start
 
-**Note:** These steps should be done when the database is not otherwise in use.
-Stop the Lifecycle application, or put the database in SINGLE USER mode.
+>**Note:** These steps should be done when the database is not otherwise in use.
+>Stop the Lifecycle application, or put the database in SINGLE USER mode.
 
 ### Removing Redundancy
 To remove any redundant history in your VersionOne database, run these scripts **in this order**:
