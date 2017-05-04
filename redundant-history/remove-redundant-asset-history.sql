@@ -5,7 +5,6 @@
  *		To commit changes, set @saveChanges = 1.
  */
 declare @saveChanges bit; --set @saveChanges = 1
-declare @rows int = 0
 
 declare @sqlTemplate varchar(max); select @sqlTemplate = '
 	declare @error int, @rowcount int
@@ -24,48 +23,52 @@ declare @sqlTemplate varchar(max); select @sqlTemplate = '
 
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
-		
-	if @rowcount>0 begin
-		select @rows = @rows + @rowcount
-		raiserror(''%d {hist} historical records deleted'', 0, 1, @rowcount) with nowait
+	if @rowcount=0 goto RB
 
-		;with H as (
-			select ID, AuditBegin, AuditEnd, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
-			from dbo.[{hist}]
-		)
-		update dbo.[{hist}] set AuditEnd=B.AuditBegin
-		from H A
-		left join H B on A.ID=B.ID and A.R+1=B.R
-		where [{hist}].ID=A.ID and [{hist}].AuditBegin=A.AuditBegin
-			and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)
+	insert #rows values(''delete {hist}'', @rowcount)
+	raiserror(''%d {hist} historical records deleted'', 0, 1, @rowcount) with nowait
 
-		select @rowcount=@@ROWCOUNT, @error=@@ERROR
-		if @error<>0 goto ERR
-		raiserror(''%d {hist} historical records stitched'', 0, 2, @rowcount) with nowait
-				
-		alter table dbo.[{now}] disable trigger all
-
-		update dbo.[{now}] set AuditBegin=[{hist}].AuditBegin 
+	;with H as (
+		select ID, AuditBegin, AuditEnd, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
 		from dbo.[{hist}]
-		where [{hist}].ID=[{now}].ID and [{hist}].AuditEnd is null and [{hist}].AuditBegin<>[{now}].AuditBegin
+	)
+	update dbo.[{hist}] set AuditEnd=B.AuditBegin
+	from H A
+	left join H B on A.ID=B.ID and A.R+1=B.R
+	where [{hist}].ID=A.ID and [{hist}].AuditBegin=A.AuditBegin
+		and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)
 
-		select @rowcount=@@ROWCOUNT, @error=@@ERROR
-		alter table dbo.[{now}] enable trigger all
+	select @rowcount=@@ROWCOUNT, @error=@@ERROR
+	if @error<>0 goto ERR
+	insert #rows values(''stitch {hist}'', @rowcount)
+	raiserror(''%d {hist} historical records stitched'', 0, 2, @rowcount) with nowait
+				
+	alter table dbo.[{now}] disable trigger all
 
-		if @error<>0 goto ERR
-		raiserror(''%d {now} records synced'', 0, 3, @rowcount) with nowait
+	update dbo.[{now}] set AuditBegin=[{hist}].AuditBegin 
+	from dbo.[{hist}]
+	where [{hist}].ID=[{now}].ID and [{hist}].AuditEnd is null and [{hist}].AuditBegin<>[{now}].AuditBegin
 
-		insert #sql values(''raiserror(''''reindex {hist}'''', 0, 4) with nowait; dbcc dbreindex (''''dbo.[{hist}]'''')'')
+	select @rowcount=@@ROWCOUNT, @error=@@ERROR
+	alter table dbo.[{now}] enable trigger all
 
-		if ({saveChanges} = 1) goto OK
-		raiserror(''To commit changes, set @saveChanges=1'',16,254) with nowait
-		ERR: raiserror(''Rolling back changes'', 0, 255) with nowait; rollback tran TX2
-	end
+	if @error<>0 goto ERR
+	insert #rows values(''sync {now}'', @rowcount)
+	raiserror(''%d {now} records synced'', 0, 3, @rowcount) with nowait
+
+	insert #sql values(''raiserror(''''reindex {hist}'''', 0, 4) with nowait; dbcc dbreindex (''''dbo.[{hist}]'''')'')
+
+	if ({saveChanges} = 1) goto OK
+	raiserror(''To commit changes, set @saveChanges=1'',16,254) with nowait
+
+	ERR: raiserror(''Rolling back changes'', 0, 255) with nowait
+	RB: rollback tran TX2
 	OK: commit
 '
 
 set nocount on
 create table #sql (sql varchar(max) not null)
+create table #rows(seq int not null identity, Action varchar(200) not null, [count] int not null)
 
 insert #sql
 select REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(@sqlTemplate, '{now}', nowTable), '{hist}', histTable), '{colsEqual}', colsEqual), '{cols}', cols), '{saveChanges}', isnull(@saveChanges, 0))
@@ -114,6 +117,19 @@ while 1=1 begin
 end
 
 close C; deallocate C
---select * from #sql
 
+select * from #rows order by seq
+
+declare @countAssetAuditsBefore int, @countAssetAuditsRemoved int
+if 0 < (select sum([count]) from #rows) begin
+	raiserror('rebuilding AssetAudit', 0, 5) with nowait
+	select @countAssetAuditsBefore = count(*) from dbo.AssetAudit
+	exec dbo.AssetAudit_Rebuild
+	select @countAssetAuditsRemoved = @countAssetAuditsBefore - count(*) from dbo.AssetAudit
+	raiserror('%d AssetAudits removed', 0, 6, @countAssetAuditsRemoved) with nowait
+end
+
+drop table #rows
+
+--select * from #sql
 drop table #sql
