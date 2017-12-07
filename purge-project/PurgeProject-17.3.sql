@@ -60,6 +60,8 @@ insert @safeMembers values(20)
 -- save all non-deleted Members, if requested
 insert @safeMembers
 select ID from BaseAsset_Now where @saveMembers=1 and AssetType='Member' and AssetState<255
+except
+select safeMember from @safeMembers
 
 -- doom the seed Scope
 insert @doomed values(@scopeToPurge)
