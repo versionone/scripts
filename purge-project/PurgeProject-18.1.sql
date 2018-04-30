@@ -357,7 +357,7 @@ except select doomed from @doomed
 insert @doomed
 select ID from StrategicTheme_Now join @doomed on doomed=ScopeID
 
--- doom Goals that live in doomed Scopes
+-- doom Milestones that live in doomed Scopes
 insert @doomed
 select ID from Milestone_Now join @doomed on doomed=ScopeID
 
