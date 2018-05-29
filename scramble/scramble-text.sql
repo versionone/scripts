@@ -59,10 +59,15 @@ if @error<>0 goto ERR
 print @rowcount + ' strings scrambled'
 
 if exists (select * from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA='dbo' and TABLE_NAME='BaseAssetTaggedWith' and TABLE_TYPE='BASE TABLE') begin
-	update dbo.BaseAssetTaggedWith set Value=dbo.__RandomString(Value)
+	create table #tags (Tag nvarchar(440) collate Latin1_General_CI_AS not null primary key, Result nvarchar(440) collate Latin1_General_CI_AS not null unique)
+	insert #tags (Tag, Result)
+	select Value, dbo.__RandomString(Value) from (select distinct Value from dbo.BaseAssetTaggedWith) _
+	if @@ERROR<>0 goto ERR
+	update dbo.BaseAssetTaggedWith set Value=Result from #tags where Value=Tag
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
 	print @rowcount + ' tags scrambled'
+	drop table #tags
 end
 
 update dbo.LongString set Value='This Is a Random Description ' + cast(NEWID() as varchar(100))
