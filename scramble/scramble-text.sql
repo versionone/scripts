@@ -58,6 +58,13 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' strings scrambled'
 
+if exists (select * from INFORMATION_SCHEMA.TABLES where TABLE_SCHEMA='dbo' and TABLE_NAME='BaseAssetTaggedWith' and TABLE_TYPE='BASE TABLE') begin
+	update dbo.BaseAssetTaggedWith set Value=dbo.__RandomString(Value)
+	select @rowcount=@@ROWCOUNT, @error=@@ERROR
+	if @error<>0 goto ERR
+	print @rowcount + ' tags scrambled'
+end
+
 update dbo.LongString set Value='This Is a Random Description ' + cast(NEWID() as varchar(100))
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
