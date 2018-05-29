@@ -58,7 +58,7 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' strings scrambled'
 
-update dbo.LongString set Value=dbo.__RandomString('This Is a Random Description ' + cast(NEWID() as varchar(100)))
+update dbo.LongString set Value='This Is a Random Description ' + cast(NEWID() as varchar(100))
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' descriptions scrambled'
