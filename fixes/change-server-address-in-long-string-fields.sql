@@ -8,7 +8,7 @@
  */
 
 declare @saveChanges bit; --set @saveChanges = 1
-declare @supportedVersions varchar(1000); select @supportedVersions='10.2.*, 10.3.*, 11.*, 12.*, 13.*, 14.*, 15.*, 16.*, 17.*'
+declare @supportedVersions varchar(1000); select @supportedVersions='10.2.*, 10.3.*, 11.*, 12.*, 13.*, 14.*, 15.*, 16.*, 17.*, 18.*'
 
 -- Ensure the correct database version
 BEGIN
@@ -29,29 +29,19 @@ END
 declare @error int, @rowcount int
 set nocount on; begin tran; save tran TX
 
-
 DECLARE @OldServerSlug nvarchar(max)
 DECLARE @NewServerSlug nvarchar(max)
 
 SET @OldServerSlug = 'https://www.oldV1host.com/VersionOne.Web/'
 SET @NewServerSlug = 'http://www.newV1host.com/V1.Web/'
 
---SELECT TOP 1000 [ID]
---      ,[Value]
---  FROM [dbo].[LongString]
---  WHERE [Value] like '%' + @NewServerSlug + '%'
-
 UPDATE [dbo].[LongString]
 SET [Value] = REPLACE(cast([Value] as nvarchar(max)), @OldServerSlug, @NewServerSlug)
 WHERE [Value] like '%' + @OldServerSlug + '%'
 
-
-
-/* after every modifying statement, check for errors; optionally, emit status */
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d records updated', 0, 1, @rowcount) with nowait
-
 
 if (@saveChanges = 1) begin raiserror('Committing changes', 0, 254); goto OK end
 raiserror('To commit changes, set @saveChanges=1',16,254)
