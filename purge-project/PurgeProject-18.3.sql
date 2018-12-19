@@ -24,6 +24,21 @@ if (@supportedVersion is not null) begin
 	end
 end
 
+declare @is_auto_update_stats_async_on bit, @user_access_desc nvarchar(60)
+select 
+	@is_auto_update_stats_async_on = is_auto_update_stats_async_on,
+	@user_access_desc=user_access_desc 
+from sys.databases where database_id=DB_ID()
+
+if (@user_access_desc <> 'SINGLE_USER') begin
+	if (@is_auto_update_stats_async_on = 1) begin
+		raiserror('Disabling async auto-update states', 0, 1) with nowait
+		alter database current set AUTO_UPDATE_STATISTICS_ASYNC OFF
+	end
+	raiserror('Putting database into SINGLE_USER mode', 0, 1) with nowait
+	alter database current set SINGLE_USER with rollback immediate
+end
+
 exec sp_MSforeachtable @command1='disable trigger all on ?'
 
 declare @error int, @rowcount varchar(20)
@@ -1476,5 +1491,16 @@ OK:
 commit
 TX_DONE:
 exec sp_MSforeachtable @command1='enable trigger all on ?'
+
+if (@user_access_desc <> 'SINGLE_USER') begin
+	raiserror('Putting database into %s mode', 0, 1, @user_access_desc) with nowait
+	declare @sql nvarchar(max) = 'alter database current set ' + @user_access_desc + ' with rollback immediate'
+	exec(@sql)
+	if (@is_auto_update_stats_async_on = 1) begin
+		raiserror('Enabling async auto-update states', 0, 1) with nowait
+		alter database current set AUTO_UPDATE_STATISTICS_ASYNC ON
+	end
+end
+
 DONE:
 raiserror('=== Done ===', 0, 1) with nowait
