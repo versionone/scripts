@@ -10,7 +10,7 @@
  *		To make changes WITHOUT A TRANSACTION, no possibility of rollback, and possible data corruption, set @commitChanges = 2
  */
 
-declare @commitChanges bit; --set @commitChanges = 1; --set @commitChanges = 2
+declare @commitChanges tinyint; --set @commitChanges = 1; --set @commitChanges = 2
 declare @scopeToPurge int; --set @scopeToPurge = 54198
 declare @allowRecursion bit; --set @allowRecursion = 1
 declare @saveMembers bit; -- set @saveMembers = 1
