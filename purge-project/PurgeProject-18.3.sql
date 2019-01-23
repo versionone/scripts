@@ -25,9 +25,9 @@ if (@supportedVersion is not null) begin
 end
 
 declare @is_auto_update_stats_async_on bit, @user_access_desc nvarchar(60)
-select 
+select
 	@is_auto_update_stats_async_on = is_auto_update_stats_async_on,
-	@user_access_desc=user_access_desc 
+	@user_access_desc=user_access_desc
 from sys.databases where database_id=DB_ID()
 
 if (@user_access_desc <> 'SINGLE_USER') begin
@@ -42,7 +42,7 @@ end
 exec sp_MSforeachtable @command1='disable trigger all on ?'
 
 declare @error int, @rowcount varchar(20)
-set nocount on; 
+set nocount on;
 
 if (@commitChanges = 2) begin raiserror('Making changes with no transaction!', 0, 1) with nowait; goto TX_STARTED end
 begin tran; save tran TX
@@ -1484,7 +1484,7 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 if (@commitChanges = 2) goto TX_DONE
 if (@commitChanges = 1) begin raiserror('Committing changes...', 0, 1) with nowait; goto OK end
 raiserror('Rolling back changes.  To commit changes, pass @commitChanges=1',16,1)
-ERR: 
+ERR:
 if (@commitChanges = 2) goto TX_DONE
 rollback tran TX
 OK:
