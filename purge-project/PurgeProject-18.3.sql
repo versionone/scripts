@@ -475,6 +475,10 @@ select ID from Grant_Now join @doomed on doomed=OwnerID
 insert @doomed
 select ID from Timesheet_Now join @doomed on doomed=MemberID
 
+-- doom SavedViews owned by doomed Members or pegged to doomed Scopes
+insert @doomed
+select ID from SavedView_Now join @doomed on doomed=OwnerID or doomed=ScopeID
+
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -582,6 +586,13 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 delete Label from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Labels purged', 0, 1, @rowcount) with nowait
+
+raiserror('SavedViews', 0, 1) with nowait
+delete SavedView_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete SavedView from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s SavedViews purged', 0, 1, @rowcount) with nowait
 
 raiserror('Expressions', 0, 1) with nowait
 delete ExpressionMentions from @doomed where doomed=ExpressionID
