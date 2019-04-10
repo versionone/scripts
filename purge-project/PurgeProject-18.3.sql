@@ -7,9 +7,10 @@
  *
  *	NOTE:  This script defaults to rolling back changes.
  *		To commit changes, set @commitChanges = 1.
+ *		To make changes WITHOUT A TRANSACTION, no possibility of rollback, and possible data corruption, set @commitChanges = 2
  */
 
-declare @commitChanges bit; --set @commitChanges = 1
+declare @commitChanges tinyint; --set @commitChanges = 1; --set @commitChanges = 2
 declare @scopeToPurge int; --set @scopeToPurge = 54198
 declare @allowRecursion bit; --set @allowRecursion = 1
 declare @saveMembers bit; -- set @saveMembers = 1
@@ -23,11 +24,29 @@ if (@supportedVersion is not null) begin
 	end
 end
 
+declare @is_auto_update_stats_async_on bit, @user_access_desc nvarchar(60)
+select
+	@is_auto_update_stats_async_on = is_auto_update_stats_async_on,
+	@user_access_desc=user_access_desc
+from sys.databases where database_id=DB_ID()
+
+if (@user_access_desc <> 'SINGLE_USER') begin
+	if (@is_auto_update_stats_async_on = 1) begin
+		raiserror('Disabling async auto-update states', 0, 1) with nowait
+		alter database current set AUTO_UPDATE_STATISTICS_ASYNC OFF
+	end
+	raiserror('Putting database into SINGLE_USER mode', 0, 1) with nowait
+	alter database current set SINGLE_USER with rollback immediate
+end
+
 exec sp_MSforeachtable @command1='disable trigger all on ?'
 
 declare @error int, @rowcount varchar(20)
-set nocount on; begin tran;
-save tran TX
+set nocount on;
+
+if (@commitChanges = 2) begin raiserror('Making changes with no transaction!', 0, 1) with nowait; goto TX_STARTED end
+begin tran; save tran TX
+TX_STARTED:
 
 -- Ensure the Scope exists
 if not exists (select * from Scope_Now where ID=@scopeToPurge) begin
@@ -1462,11 +1481,26 @@ option(maxdop 1) -- see http://connect.microsoft.com/SQLServer/feedback/details/
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 
+if (@commitChanges = 2) goto TX_DONE
 if (@commitChanges = 1) begin raiserror('Committing changes...', 0, 1) with nowait; goto OK end
 raiserror('Rolling back changes.  To commit changes, pass @commitChanges=1',16,1)
-ERR: rollback tran TX
+ERR:
+if (@commitChanges = 2) goto TX_DONE
+rollback tran TX
 OK:
 commit
+TX_DONE:
 exec sp_MSforeachtable @command1='enable trigger all on ?'
+
+if (@user_access_desc <> 'SINGLE_USER') begin
+	raiserror('Putting database into %s mode', 0, 1, @user_access_desc) with nowait
+	declare @sql nvarchar(max) = 'alter database current set ' + @user_access_desc + ' with rollback immediate'
+	exec(@sql)
+	if (@is_auto_update_stats_async_on = 1) begin
+		raiserror('Enabling async auto-update states', 0, 1) with nowait
+		alter database current set AUTO_UPDATE_STATISTICS_ASYNC ON
+	end
+end
+
 DONE:
 raiserror('=== Done ===', 0, 1) with nowait
