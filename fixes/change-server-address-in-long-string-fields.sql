@@ -8,7 +8,7 @@
  */
 
 declare @saveChanges bit; --set @saveChanges = 1
-declare @supportedVersions varchar(1000); select @supportedVersions='10.2.*, 10.3.*, 11.*, 12.*, 13.*, 14.*, 15.*, 16.*, 17.*, 18.*'
+declare @supportedVersions varchar(1000); select @supportedVersions='10.2.*, 10.3.*, 11.*, 12.*, 13.*, 14.*, 15.*, 16.*, 17.*, 18.*, 19.*'
 
 -- Ensure the correct database version
 BEGIN
