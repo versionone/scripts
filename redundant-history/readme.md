@@ -1,3 +1,10 @@
+# Determining whether your VersionOne database contains redundant history
+
+Run the following 2 scripts to gather statistics which will help identify whether there is a nontrivial amount of redundant history in your VersionOne database.  These 2 scripts do not modify your database, and can be run at any time:
+
+1. AssetAudit_stats.sql
+2. most-frequently-updated-assets.sql
+
 # Removing redundant history records from your VersionOne database
 
 ## Quick Start
