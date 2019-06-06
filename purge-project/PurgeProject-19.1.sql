@@ -1450,6 +1450,8 @@ update Room_Now set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Room_Now set MascotID=null from @doomed where doomed=MascotID
 select @error=@@ERROR; if @error<>0 goto ERR
+update Room_Now set DefaultScopeID=null from @doomed where doomed=DefaultScopeID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete Room from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Room set ScopeLabelID=null from @doomed where doomed=ScopeLabelID
@@ -1459,6 +1461,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update Room set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Room set MascotID=null from @doomed where doomed=MascotID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Room set DefaultScopeID=null from @doomed where doomed=DefaultScopeID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Rooms purged', 0, 1, @rowcount) with nowait
 
