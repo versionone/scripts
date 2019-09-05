@@ -9,14 +9,19 @@ declare @error int, @rowcount int
 set nocount on; begin tran; save tran TX
 
 declare @str int, @auditid int
-exec _SaveString 'make-admin-admin', @str output
+exec dbo._SaveString 'make-admin-admin', @str output
 
 insert dbo.[Audit]([ChangeDateUTC],[ChangedByID],[ChangeReason],[ChangeComment])
 values(GETUTCDATE(),null,@str,null)
 
 select @auditid=SCOPE_IDENTITY()
 
-update Member_Now set AuditBegin=@auditid, DefaultRoleID=1 where ID=20
+delete from dbo.ScopeMemberACL where MemberID=20
+insert into dbo.ScopeMemberACL(ScopeID, MemberID, RoleID, Owner) values (0, 20, 1, 1)
+
+exec dbo.Security_GenerateEffectiveACL 0, 20
+
+update dbo.Member_Now set AuditBegin=@auditid, DefaultRoleID=1 where ID=20
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
