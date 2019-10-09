@@ -106,21 +106,32 @@ open A; while 1=1 begin
 		' as table('
 
 	-- define columns
-	declare @col_name sysname, @user_type_id int, @is_nullable bit, @is_identity bit, @definition nvarchar(max)
+	declare @col_name sysname, @utype_name sysname, @max_length smallint, @collation_name sysname, @is_nullable bit, @is_identity bit, @definition nvarchar(max)
 	declare B cursor local fast_forward for
-		select c.name, c.user_type_id, c.is_nullable, c.is_identity, dc.definition
+		select c.name, t.name, c.max_length, c.collation_name, c.is_nullable, c.is_identity, dc.definition
 		from sys.columns c
+		join sys.types t on t.user_type_id=c.user_type_id
 		left join sys.default_constraints dc
 			on dc.parent_object_id=c.object_id and dc.parent_column_id=c.column_id
 		where c.object_id=@object_id
 	open B; while 1=1 begin
-		fetch next from B into @col_name, @user_type_id, @is_nullable, @is_identity, @definition
+		fetch next from B into @col_name, @utype_name, @max_length, @collation_name, @is_nullable, @is_identity, @definition
 		if @@FETCH_STATUS<>0 break
 
 		select @sql = @sql + N'
 	' +
-			quotename(@col_name) + N' ' + TYPE_NAME(@user_type_id) +
-			case when @is_nullable=0 then N' not' else '' end + N' null' +
+			quotename(@col_name) + N' ' + @utype_name +
+			case when @utype_name in ('binary','varbinary','char','varchar','nchar','nvarchar') then
+				case when @max_length=-1 then 
+					N'(max)' 
+				else
+					N'(' + cast(@max_length as varchar(10)) + N')' 
+				end
+			else
+				N''
+			end +
+			case when @collation_name is not null then N' collate ' + @collation_name else N'' end +
+			case when @is_nullable=0 then N' not' else N'' end + N' null' +
 			case when @is_identity=1 then N' identity' else N'' end +
 			case when @definition is not null then N' default'+@definition else '' end +
 			N',	'
@@ -174,6 +185,6 @@ open X; while 1=1 begin
 	fetch next from X into @sql
 	if @@FETCH_STATUS<>0 break
 	print(@sql)
-	exec(@sql)
+	--exec(@sql)
 end; close X; deallocate X
 
