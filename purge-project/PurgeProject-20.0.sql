@@ -496,11 +496,6 @@ delete BaseAssetTaggedWith from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s BaseAssetTaggedWithAll purged', 0, 1, @rowcount) with nowait
 
-raiserror('SchemeImportantFields', 0, 1) with nowait
-delete SchemeImportantFields from @doomed where doomed=ID
-select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-raiserror('%s SchemeImportantFields purged', 0, 1, @rowcount) with nowait
-
 raiserror('IDSource', 0, 1) with nowait
 delete IDSource from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
