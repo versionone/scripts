@@ -32,10 +32,10 @@ raiserror('%d closed audit mismatch betwen BaseAsset_Now and BaseAsset tip', 0, 
 
 select @cnt=count(*)
 from dbo.BaseAsset ba
-cross apply (select top 1 bac.* from BaseAsset bac where bac.ID=ba.ID and bac.AssetState=128 and bac.AuditBegin<=ba.AuditBegin and not exists (select * from BaseAsset bao where bao.ID=bac.ID and bao.AssetState<128 and bao.AuditBegin>bac.AuditBegin and bao.AuditBegin<ba.AuditBegin) order by AuditBegin) bac
-where ba.AssetState>=128 and (ba.ClosedAuditID is null or ba.ClosedAuditID<>bac.AuditBegin)
+cross apply (select top 1 bac.* from BaseAsset bac where bac.ID=ba.ID and bac.AssetState=128 and bac.AuditBegin<=ba.AuditBegin and not exists (select * from BaseAsset bao where bao.ID=bac.ID and (bao.AssetState<128 or (bao.AssetState>=192 and bao.AssetState<255)) and bao.AuditBegin>bac.AuditBegin and bao.AuditBegin<ba.AuditBegin) order by AuditBegin) bac
+where ba.AssetState>=128 and (ba.AssetState<192 or ba.AssetState=255) and (ba.ClosedAuditID is null or ba.ClosedAuditID<>bac.AuditBegin)
 select @total=@total+@cnt
-raiserror('%d closed audit mismatch between closed/dead BasseAsset and its most recent closure', 0, 1, @cnt) with nowait
+raiserror('%d closed audit mismatch between closed/deleted BasseAsset and its most recent closure', 0, 1, @cnt) with nowait
 
 select @cnt=count(*)
 from dbo.BaseAsset ba
