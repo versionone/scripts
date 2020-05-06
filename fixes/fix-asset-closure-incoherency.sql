@@ -25,11 +25,6 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' open BaseAsset records cleared'
 
-update dbo.BaseAsset_Now set ClosedAuditID=null where ClosedAuditID is not null and AssetState<128
-select @rowcount=@@ROWCOUNT, @error=@@ERROR
-if @error<>0 goto ERR
-print @rowcount + ' open BaseAsset_Now records cleared'
-
 update dbo.BaseAsset
 set ClosedAuditID=bac.AuditBegin
 from dbo.BaseAsset ba
@@ -42,7 +37,8 @@ print @rowcount + ' closed BaseAsset records updated'
 update dbo.BaseAsset_Now
 set ClosedAuditID=ba.ClosedAuditID
 from dbo.BaseAsset ba
-where ba.ID=BaseAsset_Now.ID and ba.AuditEnd is null and ba.ClosedAuditID<>BaseAsset_Now.ClosedAuditID
+where ba.ID=BaseAsset_Now.ID and ba.AuditEnd is null
+ and ((ba.ClosedAuditID is null and BaseAsset_Now.ClosedAuditID is not null) or (ba.ClosedAuditID is not null and BaseAsset_Now.ClosedAuditID is null) or ba.ClosedAuditID<>BaseAsset_Now.ClosedAuditID)
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' BaseAsset_Now records synced'
