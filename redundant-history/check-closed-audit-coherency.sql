@@ -28,7 +28,7 @@ from dbo.BaseAsset_Now ban
 join dbo.BaseAsset ba on ba.ID=ban.ID and ba.AuditEnd is null
 and ((ba.ClosedAuditID is null and ban.ClosedAuditID is not null) or (ba.ClosedAuditID is not null and ban.ClosedAuditID is null) or ba.ClosedAuditID<>ban.ClosedAuditID)
 select @total=@total+@cnt
-raiserror('%d closed audit mismatch betwen BaseAsset_Now and BaseAsset tip', 0, 1, @cnt) with nowait
+raiserror('%d closed audit mismatch between BaseAsset_Now and BaseAsset tip', 0, 1, @cnt) with nowait
 
 select @cnt=count(*)
 from dbo.BaseAsset ba
