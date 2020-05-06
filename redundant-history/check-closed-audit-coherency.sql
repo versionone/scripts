@@ -11,9 +11,17 @@ select @cnt=count(*) from dbo.BaseAsset_Now where ClosedAuditID is not null and 
 select @total=@total+@cnt
 raiserror('%d open BaseAsset_Now with a closed audit', 0, 1, @cnt) with nowait
 
+select @cnt=count(*) from dbo.BaseAsset_Now where ClosedAuditID is null and AssetState>=128 and AssetState<192
+select @total=@total+@cnt
+raiserror('%d closed BaseAsset_Now without a closed audit', 0, 1, @cnt) with nowait
+
 select @cnt=count(*) from dbo.BaseAsset where ClosedAuditID is not null and AssetState<128
 select @total=@total+@cnt
 raiserror('%d open BaseAsset with a closed audit', 0, 1, @cnt) with nowait
+
+select @cnt=count(*) from dbo.BaseAsset where ClosedAuditID is null and AssetState>=128 and AssetState<192
+select @total=@total+@cnt
+raiserror('%d closed BaseAsset without a closed audit', 0, 1, @cnt) with nowait
 
 select @cnt=count(*)
 from dbo.BaseAsset_Now ban
@@ -25,7 +33,7 @@ raiserror('%d closed audit mismatch betwen BaseAsset_Now and BaseAsset tip', 0, 
 select @cnt=count(*)
 from dbo.BaseAsset ba
 cross apply (select top 1 bac.* from BaseAsset bac where bac.ID=ba.ID and bac.AssetState=128 and bac.AuditBegin<=ba.AuditBegin and not exists (select * from BaseAsset bao where bao.ID=bac.ID and bao.AssetState<128 and bao.AuditBegin>bac.AuditBegin and bao.AuditBegin<ba.AuditBegin) order by AuditBegin) bac
-where ba.AssetState>=128 and ba.ClosedAuditID<>bac.AuditBegin
+where ba.AssetState>=128 and (ba.ClosedAuditID is null or ba.ClosedAuditID<>bac.AuditBegin)
 select @total=@total+@cnt
 raiserror('%d closed audit mismatch between closed/dead BasseAsset and its most recent closure', 0, 1, @cnt) with nowait
 
