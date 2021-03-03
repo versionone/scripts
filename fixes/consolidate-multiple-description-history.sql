@@ -4,7 +4,7 @@
  *	NOTE:  This script defaults to rolling back changes.
  *		To commit changes, set @saveChanges = 1.
  */
-declare @saveChanges bit; -- set @saveChanges = 1
+declare @saveChanges bit; --set @saveChanges = 1
 declare @timeThreshold int;
 
 set @timeThreshold = 5
@@ -50,13 +50,13 @@ declare @colsAB varchar(max), @colsBC varchar(max)
 select @colsAB=(
 	select REPLACE(' and (A.{col}=B.{col} or (A.{col} is null and B.{col} is null))', '{col}', quotename(COLUMN_NAME))
 	from INFORMATION_SCHEMA.COLUMNS C
-	where C.TABLE_NAME='BaseAsset_Now' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'Description', 'ClosedAuditID')
+	where C.TABLE_NAME='BaseAsset' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'Description', 'AuditEnd')
 	for xml path('')
 )
 select @colsBC=(
 	select REPLACE(' and (B.{col}=C.{col} or (B.{col} is null and C.{col} is null))', '{col}', quotename(COLUMN_NAME))
 	from INFORMATION_SCHEMA.COLUMNS C
-	where C.TABLE_NAME='BaseAsset_Now' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'Description', 'ClosedAuditID')
+	where C.TABLE_NAME='BaseAsset' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'Description', 'AuditEnd')
 	for xml path('')
 )
 
