@@ -9,8 +9,6 @@ declare @timeThreshold int;
 
 set @timeThreshold = 5
 
-
-create table #baseassets(ID int not null, PreviousAuditID int null, CurrentAuditID int null, NextAuditId int null, [NextChangedByID] int not null, [CurrentChangedByID] int not null, [NextChangeDateUTC] datetime not null,[CurrentChangeDateUTC] datetime not null, [PreviousDescription] int null, [CurrentDescription] int null, [NextDescription] int null)
 create table #suspect(ID int not null, PreviousAuditID int null, CurrentAuditID int null, NextAuditId int null)
 create table #bad(ID int not null, PreviousAuditID int null, CurrentAuditID int null, NextAuditId int null)
 
@@ -23,18 +21,11 @@ set nocount on; begin tran; save tran TX
 	join [Audit] A ON A.ID = AA.AuditID
 )
 
-insert #baseassets(ID, PreviousAuditID, CurrentAuditID, NextAuditID, [NextChangedByID], [CurrentChangedByID], [NextChangeDateUTC], [CurrentChangeDateUTC], [PreviousDescription], [CurrentDescription], [NextDescription])
+insert #suspect(ID,  PreviousAuditID, CurrentAuditID, NextAuditID)
 select A.ID,
 C.AuditID PreviousAuditID,
 A.AuditID CurrentAuditID,
-B.AuditID NextAuditID,
-B.[ChangedByID] AS [NextChangedByID],
-A.[ChangedByID] AS [CurrentChangedByID],
-B.[ChangeDateUTC] AS [NextChangeDateUTC],
-A.[ChangeDateUTC] AS [CurrentChangeDateUTC],
-bC.[Description] AS [PreviousDescription],
-bA.[Description] AS [CurrentDescription],
-bB.[Description] AS [NextDescription]
+B.AuditID NextAuditID
 from H A
 join dbo.BaseAsset bA on bA.ID=A.ID and bA.AssetType=A.AssetType and bA.AuditBegin=A.AuditID
 
@@ -44,22 +35,14 @@ join dbo.BaseAsset bB on bB.ID=B.ID and bB.AssetType=B.AssetType and bB.AuditBeg
 left join H C on C.ID=B.ID and C.AssetType=B.AssetType and C.R=A.R-1
 left join dbo.BaseAsset bC on bC.ID=C.ID and bC.AssetType=C.AssetType and bC.AuditBegin=C.AuditID
 
-
-insert #suspect(ID,  PreviousAuditID, CurrentAuditID, NextAuditID)
-select _.ID,
-PreviousAuditID,
-CurrentAuditID,
-NextAuditID
-from #baseassets _
 WHERE 1=1
-AND ISNULL([NextChangedByID] ,-1) = [CurrentChangedByID]  -- Consecutive changes from the same user
-AND
-DATEDIFF(mi,[CurrentChangeDateUTC],[NextChangeDateUTC]) < @timethreshold --Time threshold / period / lapse.
+AND ISNULL(B.[ChangedByID] ,-1) = A.[ChangedByID]  -- Consecutive changes from the same user
+AND DATEDIFF(mi,A.[ChangeDateUTC] ,B.[ChangeDateUTC]) < @timethreshold --Time threshold / period / lapse.
 AND
 (
-	ISNULL([PreviousDescription],-1) != ISNULL([CurrentDescription],-1) --Description has changed
+	ISNULL(bC.[Description],-1) != ISNULL(bA.[Description],-1) --Description has changed
 	AND
-	ISNULL([NextDescription],-1) != ISNULL([CurrentDescription],-1) --Description has changed
+	ISNULL(bB.[Description],-1) != ISNULL(bA.[Description],-1) --Description has changed
 )
 
 -- BaseAsset column comparison
@@ -147,4 +130,3 @@ DONE:
 
 drop table #bad
 drop table #suspect
-drop table #baseassets
