@@ -84,7 +84,7 @@ print @rowcount + ' BaseAsset history records restitched'
 alter table dbo.BaseAsset_Now disable trigger all
 
 -- sync up BaseAsset_Now with history tips from BaseAsset
-update dbo.BaseAsset_Now set AuditBegin=BaseAsset.AuditBegin, ClosedAuditID=BaseAsset.ClosedAuditID
+update dbo.BaseAsset_Now set AuditBegin=BaseAsset.AuditBegin
 from dbo.BaseAsset
 where BaseAsset.ID=BaseAsset_Now.ID and BaseAsset.AuditEnd is null and BaseAsset.AuditBegin<>BaseAsset_Now.AuditBegin
 
