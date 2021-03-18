@@ -33,7 +33,7 @@ AND DATEDIFF(mi,A.[ChangeDateUTC] ,B.[ChangeDateUTC]) <= @timethreshold --Time t
 AND	ISNULL(B.[Description],-1) != ISNULL(A.[Description],-1) --Description has changed
 
 -- BaseAsset column comparison
-declare @colsAB varchar(max), @colsBC varchar(max)
+declare @colsAB varchar(max)
 select @colsAB=(
 	select REPLACE(' and (A.{col}=B.{col} or (A.{col} is null and B.{col} is null))', '{col}', quotename(COLUMN_NAME))
 	from INFORMATION_SCHEMA.COLUMNS C
