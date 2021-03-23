@@ -9,28 +9,36 @@ declare @timeThreshold int;
 
 set @timeThreshold = 5
 
-create table #suspect(ID int not null, CurrentAuditID int null, NextAuditId int null)
-create table #bad(ID int not null, CurrentAuditID int null, NextAuditId int null)
+create table #baseassets(ID int not null, CurrentAuditID int not null, NextAuditID int not null)
+create table #suspect(ID int not null, CurrentAuditID int not null, NextAuditID int not null)
+create table #bad(ID int not null, CurrentAuditID int not null, NextAuditID int not null)
 
 set nocount on; begin tran; save tran TX
 
--- consecutive BaseAsset changes
+-- BaseAssets
 ;with H as (
-	select AA.ID, AA.AssetType, AuditID, A.[ChangedByID], A.ChangeDateUTC, bA.[Description] ,R=ROW_NUMBER() OVER(partition by AA.ID, AA.AssetType order by AuditID)
+	select AA.ID, AA.AssetType, AuditID, R=ROW_NUMBER() OVER(partition by AA.ID, AA.AssetType order by AuditID)
 	from dbo.AssetAudit AA
-	join [Audit] A ON A.ID = AA.AuditID
-	join dbo.BaseAsset bA on bA.ID=AA.ID and bA.AssetType=AA.AssetType and bA.AuditBegin=AA.AuditID
 )
+insert #baseassets(ID, CurrentAuditID, NextAuditID)
+select aH.ID, aH.AuditID, bH.AuditID
+from H as aH
+join dbo.BaseAsset aBA on aBA.ID=aH.ID and aBA.AssetType=aH.AssetType and aH.AuditID = aBA.AuditBegin
+join H as bH on bH.ID=aH.ID and aH.AssetType=bH.AssetType and bH.R=aH.R+1
+join dbo.BaseAsset bBA on bBA.ID=bH.ID and bBA.AssetType=bH.AssetType and bH.AuditID = bBA.AuditBegin
 
+-- Consecutive BaseAsset changes
 insert #suspect(ID, CurrentAuditID, NextAuditID)
-select A.ID,
-A.AuditID CurrentAuditID,
-B.AuditID NextAuditID
-FROM H as A
-JOIN H as B on B.ID=A.ID and B.AssetType=A.AssetType and B.R=A.R+1
-AND ISNULL(B.[ChangedByID] ,-1) = A.[ChangedByID]  -- Consecutive changes from the same user
-AND DATEDIFF(mi,A.[ChangeDateUTC] ,B.[ChangeDateUTC]) <= @timethreshold --Time threshold / period / lapse.
-AND	ISNULL(B.[Description],-1) != ISNULL(A.[Description],-1) --Description has changed
+select Assets.ID, Assets.CurrentAuditID, Assets.NextAuditID
+from #baseassets as Assets
+join dbo.BaseAsset currentBA on currentBA.ID=Assets.ID and currentBA.AuditBegin=Assets.CurrentAuditID
+join dbo.BaseAsset nextBA on nextBA.ID=Assets.ID and nextBA.AuditBegin=Assets.NextAuditID
+join dbo.[Audit] currentA on currentA.ID = Assets.CurrentAuditID
+join dbo.[Audit] nextA on nextA.ID = Assets.NextAuditID
+WHERE
+ISNULL(currentA.[ChangedByID] ,-1) = ISNULL(nextA.[ChangedByID],-1)  -- Consecutive changes from the same user
+AND DATEDIFF(mi,currentA.[ChangeDateUTC] ,nextA.[ChangeDateUTC]) <= @timethreshold --Time threshold / period / lapse.
+AND	ISNULL(currentBA.[Description],-1) != ISNULL(nextBA.[Description],-1) --Description has changed
 
 -- BaseAsset column comparison
 declare @colsAB varchar(max)
@@ -41,7 +49,7 @@ select @colsAB=(
 	for xml path('')
 )
 
--- consecutive redundant BaseAsset re-open/close
+-- consecutive redundant BaseAsset descriptions
 declare @sql varchar(max); select @sql = '
 insert #bad(ID, CurrentAuditID, NextAuditID)
 select _.ID, CurrentAuditID, NextAuditID
@@ -50,7 +58,7 @@ join dbo.BaseAsset A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
 join dbo.BaseAsset B on B.ID=_.ID and B.AuditBegin=_.NextAuditID
 ' + @colsAB
 
--- print @sql
+--print @sql
 exec(@sql)
 
 -- purge redundant rows
@@ -109,3 +117,4 @@ DONE:
 
 drop table #bad
 drop table #suspect
+drop table #baseassets
