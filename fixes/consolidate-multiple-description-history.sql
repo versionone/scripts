@@ -61,6 +61,12 @@ join dbo.BaseAsset B on B.ID=_.ID and B.AuditBegin=_.NextAuditID
 --print @sql
 exec(@sql)
 
+-- rows to purge
+select ba.ID, ba.AssetType, ba.AuditBegin, a.ChangedByID, a.ChangeDateUTC
+from #bad b
+join BaseAsset ba ON ba.ID=b.ID and ba.AuditBegin=b.CurrentAuditID
+join dbo.[Audit] a on a.ID = b.CurrentAuditID
+
 -- purge redundant rows
 delete dbo.BaseAsset
 from #bad
