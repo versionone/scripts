@@ -134,7 +134,7 @@ open A; while 1=1 begin
 			case when @is_nullable=0 then N' not' else N'' end + N' null' +
 			case when @is_identity=1 then N' identity' else N'' end +
 			case when @definition is not null then N' default'+@definition else '' end +
-			N',	'
+			N','
 	end; close B; deallocate B
 
 	-- define indexes
