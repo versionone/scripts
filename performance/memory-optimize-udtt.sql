@@ -71,9 +71,8 @@ declare @tt table(
 insert @tt(schema_id, t.name, user_type_id, table_type_object_id)
 select schema_id, t.name, user_type_id, type_table_object_id
 from sys.table_types t
-inner join sys.indexes i
-on t.type_table_object_id=i.object_id
-where is_user_defined=1 and is_memory_optimized=0 and i.name is not null
+where exists (select name, object_id from sys.indexes i where i.object_id=t.type_table_object_id and i.name is not null)
+and is_user_defined=1 and is_memory_optimized=0
 
 -- find dependant procs
 declare @proc table(id int not null)
