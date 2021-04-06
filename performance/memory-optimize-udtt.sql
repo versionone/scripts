@@ -68,10 +68,12 @@ declare @tt table(
 	table_type_object_id int not null
 )
 
-insert @tt(schema_id, name, user_type_id, table_type_object_id)
-select schema_id, name, user_type_id, type_table_object_id
-from sys.table_types
-where is_user_defined=1 and is_memory_optimized=0
+insert @tt(schema_id, t.name, user_type_id, table_type_object_id)
+select schema_id, t.name, user_type_id, type_table_object_id
+from sys.table_types t
+inner join sys.indexes i
+on t.type_table_object_id=i.object_id
+where is_user_defined=1 and is_memory_optimized=0 and i.name is not null
 
 -- find dependant procs
 declare @proc table(id int not null)
@@ -134,7 +136,7 @@ open A; while 1=1 begin
 			case when @is_nullable=0 then N' not' else N'' end + N' null' +
 			case when @is_identity=1 then N' identity' else N'' end +
 			case when @definition is not null then N' default'+@definition else '' end +
-			N',	'
+			N','
 	end; close B; deallocate B
 
 	-- define indexes
@@ -142,7 +144,7 @@ open A; while 1=1 begin
 	declare C cursor local fast_forward for
 		select index_id, is_primary_key
 		from sys.indexes
-		where object_id=@object_id
+		where object_id=@object_id and name is not null
 		order by index_id
 	open C; while 1=1 begin
 		fetch next from C into @index_id, @is_primary_key
@@ -171,6 +173,11 @@ open A; while 1=1 begin
 	select @sql = left(@sql, len(@sql)-1) + N'
 ) with (memory_optimized=on)'
 	insert @sqls(sql) values(@sql)
+
+	-- grants
+	select @sql = N'grant execute on type::' + quotename(SCHEMA_NAME(@schema_id)) + N'.' + quotename(@type_name) + ' to [public]'
+	insert @sqls(sql) values(@sql)
+
 end; close A; deallocate A
 
 -- recreate dropped procs
