@@ -71,7 +71,7 @@ declare @tt table(
 insert @tt(schema_id, t.name, user_type_id, table_type_object_id)
 select schema_id, t.name, user_type_id, type_table_object_id
 from sys.table_types t
-where exists (select name, object_id from sys.indexes i where i.object_id=t.type_table_object_id and i.name is not null)
+where exists (select * from sys.indexes i where i.object_id=t.type_table_object_id and i.name is not null)
 and is_user_defined=1 and is_memory_optimized=0
 
 -- find dependant procs
@@ -139,7 +139,7 @@ open A; while 1=1 begin
 	end; close B; deallocate B
 
 	-- define indexes
-	declare @index_id int, @is_primary_key bit, @name nvarchar(256)
+	declare @index_id int, @is_primary_key bit, @name sysname
 	declare C cursor local fast_forward for
 		select index_id, is_primary_key, name
 		from sys.indexes
@@ -151,7 +151,7 @@ open A; while 1=1 begin
 
 		select @sql = @sql + N'
 	' +
-			case when @is_primary_key=1 then N'primary key nonclustered(' else N'index ' + @name + ' nonclustered(' end
+			case when @is_primary_key=1 then N'primary key nonclustered(' else N'index ' + quotename(@name)+ ' nonclustered(' end
 
 		-- index columns
 		declare @column_id int
