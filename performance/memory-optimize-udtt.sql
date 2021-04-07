@@ -139,19 +139,19 @@ open A; while 1=1 begin
 	end; close B; deallocate B
 
 	-- define indexes
-	declare @index_id int, @is_primary_key bit
+	declare @index_id int, @is_primary_key bit, @name nvarchar(256)
 	declare C cursor local fast_forward for
-		select index_id, is_primary_key
+		select index_id, is_primary_key, name
 		from sys.indexes
 		where object_id=@object_id and name is not null
 		order by index_id
 	open C; while 1=1 begin
-		fetch next from C into @index_id, @is_primary_key
+		fetch next from C into @index_id, @is_primary_key, @name
 		if @@FETCH_STATUS<>0 break
 
 		select @sql = @sql + N'
 	' +
-			case when @is_primary_key=1 then N'primary key nonclustered(' else N'nonclustered index(' end
+			case when @is_primary_key=1 then N'primary key nonclustered(' else N'index ' + @name + ' nonclustered(' end
 
 		-- index columns
 		declare @column_id int
