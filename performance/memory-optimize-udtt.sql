@@ -71,9 +71,8 @@ declare @tt table(
 insert @tt(schema_id, t.name, user_type_id, table_type_object_id)
 select schema_id, t.name, user_type_id, type_table_object_id
 from sys.table_types t
-inner join sys.indexes i
-on t.type_table_object_id=i.object_id
-where is_user_defined=1 and is_memory_optimized=0 and i.name is not null
+where exists (select * from sys.indexes i where i.object_id=t.type_table_object_id and i.name is not null)
+and is_user_defined=1 and is_memory_optimized=0
 
 -- find dependant procs
 declare @proc table(id int not null)
@@ -140,19 +139,19 @@ open A; while 1=1 begin
 	end; close B; deallocate B
 
 	-- define indexes
-	declare @index_id int, @is_primary_key bit
+	declare @index_id int, @is_primary_key bit, @name sysname
 	declare C cursor local fast_forward for
-		select index_id, is_primary_key
+		select index_id, is_primary_key, name
 		from sys.indexes
 		where object_id=@object_id and name is not null
 		order by index_id
 	open C; while 1=1 begin
-		fetch next from C into @index_id, @is_primary_key
+		fetch next from C into @index_id, @is_primary_key, @name
 		if @@FETCH_STATUS<>0 break
 
 		select @sql = @sql + N'
 	' +
-			case when @is_primary_key=1 then N'primary key nonclustered(' else N'nonclustered index(' end
+			case when @is_primary_key=1 then N'primary key nonclustered(' else N'index ' + quotename(@name)+ ' nonclustered(' end
 
 		-- index columns
 		declare @column_id int
