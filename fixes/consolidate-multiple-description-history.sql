@@ -45,7 +45,7 @@ AND	ISNULL(currentBA.[Description],-1) != ISNULL(nextBA.[Description],-1) --Desc
 -- BaseAsset column comparison
 declare @colsAB varchar(max)
 select @colsAB=(
-	select REPLACE(' and (A.{col}=B.{col} or (A.{col} is null and B.{col} is null))', '{col}', quotename(COLUMN_NAME))
+	select REPLACE(' and (A.{col}=B.{col} or (A.{col} is null and B.{col} is null)) and (A.{col}=C.{col} or (A.{col} is null and C.{col} is null))', '{col}', quotename(COLUMN_NAME))
 	from INFORMATION_SCHEMA.COLUMNS C
 	where C.TABLE_NAME='BaseAsset' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'Description', 'AuditEnd')
 	for xml path('')
@@ -58,6 +58,7 @@ select _.ID, CurrentAuditID, NextAuditID
 from #suspect _
 join dbo.BaseAsset A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
 join dbo.BaseAsset B on B.ID=_.ID and B.AuditBegin=_.NextAuditID
+join dbo.BaseAsset C on C.ID=_.ID and C.AuditEnd=_.CurrentAuditID AND ISNULL(C.[Description],-1) != ISNULL(A.[Description],-1)
 ' + @colsAB
 
 --print @sql
