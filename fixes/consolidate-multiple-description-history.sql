@@ -1,5 +1,3 @@
-raiserror('This script may corrupt data. DO NOT USE!',18,1) with nowait; goto DONE;
-
 /*
  *	Consolidate description field history records, on configurable time threshold (@timeThreshold) in minutes.
  *
@@ -45,7 +43,7 @@ AND	ISNULL(currentBA.[Description],-1) != ISNULL(nextBA.[Description],-1) --Desc
 -- BaseAsset column comparison
 declare @colsAB varchar(max)
 select @colsAB=(
-	select REPLACE(' and (A.{col}=B.{col} or (A.{col} is null and B.{col} is null))', '{col}', quotename(COLUMN_NAME))
+	select REPLACE(' and (A.{col}=C.{col} or (A.{col} is null and C.{col} is null))', '{col}', quotename(COLUMN_NAME))
 	from INFORMATION_SCHEMA.COLUMNS C
 	where C.TABLE_NAME='BaseAsset' and COLUMN_NAME not in ('ID','AssetType','AuditBegin', 'Description', 'AuditEnd')
 	for xml path('')
@@ -58,6 +56,7 @@ select _.ID, CurrentAuditID, NextAuditID
 from #suspect _
 join dbo.BaseAsset A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
 join dbo.BaseAsset B on B.ID=_.ID and B.AuditBegin=_.NextAuditID
+join dbo.BaseAsset C on C.ID=_.ID and C.AuditEnd=_.CurrentAuditID AND ISNULL(C.[Description],-1) != ISNULL(A.[Description],-1)
 ' + @colsAB
 
 --print @sql
@@ -74,11 +73,11 @@ delete dbo.BaseAsset
 from #bad
 where BaseAsset.ID=#bad.ID and (BaseAsset.AuditBegin=#bad.CurrentAuditID)
 
-declare @error int, @rowcount varchar(20)
+declare @error int, @rowcount int
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-print @rowcount + ' BaseAsset description historical records consolidated'
+raiserror('%d BaseAsset description historical records consolidated', 0, 1, @rowcount) with nowait
 
 if @rowcount=0 goto FINISHED
 
@@ -95,7 +94,8 @@ where BaseAsset.ID=A.ID and BaseAsset.AuditBegin=A.AuditBegin
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-print @rowcount + ' BaseAsset history records restitched'
+raiserror('%d BaseAsset history records restitched', 0, 1, @rowcount) with nowait
+
 
 alter table dbo.BaseAsset_Now disable trigger all
 
@@ -107,7 +107,7 @@ where BaseAsset.ID=BaseAsset_Now.ID and BaseAsset.AuditEnd is null and BaseAsset
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 alter table dbo.BaseAsset_Now enable trigger all
 if @error<>0 goto ERR
-print @rowcount + ' BaseAsset_Now records syncd'
+raiserror('%d BaseAsset_Now records syncd', 0, 1, @rowcount) with nowait
 
 if @saveChanges=1 begin
 	DBCC DBREINDEX([BaseAsset])
