@@ -1,3 +1,5 @@
+raiserror('This script may corrupt data. DO NOT USE!',18,1) with nowait; goto DONE;
+
 /*
  *	Consolidate description field history records, on configurable time threshold (@timeThreshold) in minutes.
  *
