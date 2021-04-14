@@ -75,11 +75,11 @@ delete dbo.BaseAsset
 from #bad
 where BaseAsset.ID=#bad.ID and (BaseAsset.AuditBegin=#bad.CurrentAuditID)
 
-declare @error int, @rowcount varchar(20)
+declare @error int, @rowcount int
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-print @rowcount + ' BaseAsset description historical records consolidated'
+raiserror('%d BaseAsset description historical records consolidated', 0, 1, @rowcount) with nowait
 
 if @rowcount=0 goto FINISHED
 
@@ -96,7 +96,8 @@ where BaseAsset.ID=A.ID and BaseAsset.AuditBegin=A.AuditBegin
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-print @rowcount + ' BaseAsset history records restitched'
+raiserror('%d BaseAsset history records restitched', 0, 1, @rowcount) with nowait
+
 
 alter table dbo.BaseAsset_Now disable trigger all
 
@@ -108,7 +109,7 @@ where BaseAsset.ID=BaseAsset_Now.ID and BaseAsset.AuditEnd is null and BaseAsset
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 alter table dbo.BaseAsset_Now enable trigger all
 if @error<>0 goto ERR
-print @rowcount + ' BaseAsset_Now records syncd'
+raiserror('%d BaseAsset_Now records syncd', 0, 1, @rowcount) with nowait
 
 if @saveChanges=1 begin
 	DBCC DBREINDEX([BaseAsset])
