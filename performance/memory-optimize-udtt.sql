@@ -185,6 +185,11 @@ select OBJECT_DEFINITION(id)
 from @proc
 order by id desc
 
+insert @sqls(sql)
+select 'GRANT EXECUTE' + ' ON ' + quotename(OBJECT_SCHEMA_NAME(id)) + N'.' + quotename(OBJECT_NAME(id)) + ' TO [public]'
+from @proc
+order by id desc
+
 declare X cursor local fast_forward for
 	select sql from @sqls order by n
 open X; while 1=1 begin
