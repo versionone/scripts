@@ -186,7 +186,7 @@ from @proc
 order by id desc
 
 insert @sqls(sql)
-select 'GRANT EXECUTE' + ' ON ' + quotename(OBJECT_SCHEMA_NAME(id)) + N'.' + quotename(OBJECT_NAME(id)) + ' TO [public]'
+select N'GRANT EXECUTE ON ' + quotename(OBJECT_SCHEMA_NAME(id)) + N'.' + quotename(OBJECT_NAME(id)) + N' TO [public]'
 from @proc
 order by id desc
 
