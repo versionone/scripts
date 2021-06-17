@@ -8,6 +8,7 @@
  */
 declare @saveChanges bit; --set @saveChanges = 1;
 declare @customFieldTable varchar(100); --set @customFieldTable = 'dbo.CustomText';
+declare @fieldName varchar(201); --set @fieldName = 'Custom_ExampleFieldName';
 declare @timeThreshold int;
 
 set @timeThreshold = 5
@@ -43,7 +44,8 @@ join ' + @customFieldTable + ' nextCF on nextCF.ID=Assets.ID and nextCF.AuditBeg
 join dbo.[Audit] currentA on currentA.ID = Assets.CurrentAuditID
 join dbo.[Audit] nextA on nextA.ID = Assets.NextAuditID
 WHERE
-ISNULL(currentA.[ChangedByID] ,-1) = ISNULL(nextA.[ChangedByID],-1)  -- Consecutive changes from the same user
+currentCF.[Definition] = ''' + @fieldName + ''' AND nextCF.[Definition] = ''' + @fieldName + ''' -- Targetted field type
+AND ISNULL(currentA.[ChangedByID] ,-1) = ISNULL(nextA.[ChangedByID],-1)  -- Consecutive changes from the same user
 AND DATEDIFF(mi,currentA.[ChangeDateUTC] ,nextA.[ChangeDateUTC]) <= ' + CAST(@timethreshold as varchar(10)) + ' --Time threshold / period / lapse.
 AND	ISNULL(currentCF.[Value],-1) != ISNULL(nextCF.[Value],-1) --Value has changed'
 
