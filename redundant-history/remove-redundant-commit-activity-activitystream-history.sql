@@ -5,7 +5,7 @@
  *		To commit changes, set @saveChanges = 1.
  */
 declare @saveChanges bit; --set @saveChanges = 1
-declare @supportedVersions varchar(1000); select @supportedVersions='15.*, 16.*, 17.*, 18.*, 19.0.*, 19.1.*'
+declare @supportedVersions varchar(1000); select @supportedVersions='15.*, 16.*, 17.*, 18.*, 19.*, 20.*, 21.1.*'
 
 -- Ensure the correct database version
 BEGIN
