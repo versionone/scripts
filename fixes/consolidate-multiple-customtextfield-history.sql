@@ -73,6 +73,7 @@ if @rowcount=0 goto FINISHED
 -- re-stitch CustomField history
 declare @q5 varchar(max)
 select @q5 = ';
+ALTER TABLE [dbo].[CustomText]  NOCHECK CONSTRAINT ALL;
 with H as (
 	select ID, AuditBegin, AuditEnd, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
 	from ' + @customFieldTable +
@@ -81,7 +82,8 @@ update ' + @customFieldTable + ' set AuditEnd=B.AuditBegin
 from H A
 left join H B on A.ID=B.ID and A.R+1=B.R
 where ' + @customFieldTable + '.ID=A.ID and ' + @customFieldTable + '.AuditBegin=A.AuditBegin
-	and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)'
+and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1);
+ALTER TABLE [dbo].[CustomText] CHECK CONSTRAINT ALL'
 
 --print @q1 + @q2 + @q3 + @q4 + @q5
 exec(@q1 + @q2 + @q3 + @q4 + @q5)
