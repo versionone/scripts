@@ -14,11 +14,14 @@ declare @timeThreshold int;
 set @timeThreshold = 5
 
 create table #customfield(ID int not null, CurrentAuditID int not null, NextAuditID int not null, Definition varchar(201) collate Latin1_General_BIN not null)
+create table #donotpurge(ID int not null, AuditBegin int not null, AuditEnd int not null, Definition varchar(201) collate Latin1_General_BIN not null)
 create table #bad(ID int not null, CurrentAuditID int not null, NextAuditID int not null, Definition varchar(201) collate Latin1_General_BIN not null)
 
 set nocount on; begin tran; save tran TX
 
--- Custom Field Rows
+-- Custom Field Rows and No-Touch Table
+-- Will not affect rows whose Audit IDs are not contiguous within the table
+-- (Achieved by setting custom field to empty)
 declare @q1 varchar(max);
 select @q1 = ';
 with CFH as (
@@ -29,7 +32,18 @@ with CFH as (
 insert #customfield(ID, CurrentAuditID, NextAuditID, Definition)
 select aH.ID, aH.AuditID, bH.AuditID, aH.Definition
 from CFH as aH
-join CFH as bH on bH.ID=aH.ID and bH.R=aH.R+1'
+join CFH as bH on bH.ID=aH.ID and bH.R=aH.R+1
+
+insert #donotpurge(ID, AuditBegin, AuditEnd, Definition)
+select [ID]
+      ,CF.[AuditBegin]
+      ,[AuditEnd]
+      ,[Definition]
+  from ' + @customFieldTable + ' CF
+  where CF.[AuditEnd] not in (
+	select AuditBegin from ' + @customFieldTable + ' CF2
+	where CF2.[Definition]=''' + @fieldName + '''
+)'
 
 -- Consecutive Custom Field value changes
 declare @q2 varchar(max);
@@ -52,7 +66,8 @@ select @q3 = ';
 select cf.ID, cf.AuditBegin, a.ChangedByID, a.ChangeDateUTC
 from #bad b
 join ' + @customFieldTable + ' cf ON cf.ID=b.ID and cf.AuditBegin=b.CurrentAuditID and cf.Definition = b.Definition
-join dbo.[Audit] a on a.ID = b.CurrentAuditID'
+join dbo.[Audit] a on a.ID = b.CurrentAuditID
+where not exists (select 1 from #donotpurge dnp where b.ID=dnp.ID and b.CurrentAuditID=dnp.AuditBegin and b.Definition=dnp.Definition)'
 
 -- purge redundant rows
 declare @q4 varchar(max);
@@ -60,7 +75,8 @@ select @q4 = ';
 delete ' + @customFieldTable +
 ' from #bad
 where ' + @customFieldTable + '.ID=#bad.ID and ' + @customFieldTable + '.AuditBegin=#bad.CurrentAuditID
-and ' + @customFieldTable + '.Definition = #bad.Definition'
+and ' + @customFieldTable + '.Definition = #bad.Definition
+and not exists (select 1 from #donotpurge dnp where #bad.ID=dnp.ID and #bad.CurrentAuditID=dnp.AuditBegin and #bad.Definition=dnp.Definition)'
 
 declare @error int, @rowcount int
 
@@ -73,17 +89,18 @@ if @rowcount=0 goto FINISHED
 -- re-stitch CustomField history
 declare @q5 varchar(max)
 select @q5 = ';
-ALTER TABLE [dbo].[CustomText]  NOCHECK CONSTRAINT ALL;
+ALTER TABLE ' + @customFieldTable + ' NOCHECK CONSTRAINT ALL;
 with H as (
-	select ID, AuditBegin, AuditEnd, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
+	select ID, AuditBegin, AuditEnd, Definition, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
 	from ' + @customFieldTable +
 ')
 update ' + @customFieldTable + ' set AuditEnd=B.AuditBegin
 from H A
-left join H B on A.ID=B.ID and A.R+1=B.R
+join H B on A.ID=B.ID and A.R+1=B.R and A.Definition = B.Definition
 where ' + @customFieldTable + '.ID=A.ID and ' + @customFieldTable + '.AuditBegin=A.AuditBegin
-and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1);
-ALTER TABLE [dbo].[CustomText] CHECK CONSTRAINT ALL'
+and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)
+and NOT EXISTS (select 1 from #donotpurge dnp where A.ID=dnp.ID and A.AuditBegin=dnp.AuditBegin and A.Definition=dnp.Definition);
+ALTER TABLE ' + @customFieldTable + ' CHECK CONSTRAINT ALL'
 
 --print @q1 + @q2 + @q3 + @q4 + @q5
 exec(@q1 + @q2 + @q3 + @q4 + @q5)
@@ -110,4 +127,5 @@ OK: commit
 DONE:
 
 drop table #bad
+drop table #donotpurge
 drop table #customfield
