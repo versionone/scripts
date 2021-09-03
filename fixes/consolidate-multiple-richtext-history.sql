@@ -6,8 +6,8 @@
  */
 declare @saveChanges bit; --set @saveChanges = 1
 declare @TableNameWithoutSchema varchar(100); --set @TableNameWithoutSchema = 'Test'; --Table Name Ex: Test, RegressionTest, BaseAsset
-declare @TableName varchar(100); --set @TableName = 'dbo.'+ @TableNameWithoutSchema;
-declare @TableName_Now varchar(100); --set @TableName_Now = @TableName+'_Now';
+declare @TableName varchar(100); set @TableName = 'dbo.'+ @TableNameWithoutSchema;
+declare @TableName_Now varchar(100); set @TableName_Now = @TableName+'_Now';
 declare @FieldName varchar(100); --set @FieldName = 'ExpectedResults'; -- Table attribute Ex: Description, ExpectedResults, Setup
 declare @timeThreshold int;
 
@@ -44,8 +44,8 @@ join '+ @TableName +' nextAsset on nextAsset.ID=Assets.ID and nextAsset.AuditBeg
 join dbo.[Audit] currentA on currentA.ID = Assets.CurrentAuditID
 join dbo.[Audit] nextA on nextA.ID = Assets.NextAuditID
 WHERE
-ISNULL(currentA.[ChangedByID] ,-1) = ISNULL(nextA.[ChangedByID],-1)  -- Consecutive changes from the same user
-AND DATEDIFF(mi,currentA.[ChangeDateUTC] ,nextA.[ChangeDateUTC]) <= ' + CAST(@timethreshold as varchar(10)) + ' --Time threshold / period / lapse.
+ISNULL(currentA.[ChangedByID],-1) = ISNULL(nextA.[ChangedByID],-1)  -- Consecutive changes from the same user
+AND DATEDIFF(mi,currentA.[ChangeDateUTC],nextA.[ChangeDateUTC]) <= ' + CAST(@timethreshold as varchar(10)) + ' --Time threshold / period / lapse.
 AND	ISNULL(currentAsset.[' + @FieldName + '],-1) != ISNULL(nextAsset.[' + @FieldName + '],-1) --@FieldName has changed '
 
 -- Asset column comparison
@@ -85,9 +85,11 @@ where '+ @TableName + '.ID=#bad.ID and ('+ @TableName +'.AuditBegin=#bad.Current
 
 declare @error int, @rowcount int
 
+exec(@q1 + @q2 + @q3 + @q4 + @q5)
+
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-raiserror('%d %s %s historical records consolidated', 0, 1, @rowcount, @TableName, @FieldName) with nowait
+raiserror('%d %s.%s historical records consolidated', 0, 1, @rowcount, @TableNameWithoutSchema, @FieldName) with nowait
 
 if @rowcount=0 goto FINISHED
 
@@ -103,17 +105,15 @@ from H A
 left join H B on A.ID=B.ID and A.R+1=B.R
 where ' + @TableName + '.ID=A.ID and ' + @TableName + '.AuditBegin=A.AuditBegin
 	and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)'
-
-exec(@q1 + @q2 + @q3 + @q4 + @q5 + @q6)
+exec(@q6)
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-raiserror('%d %s history records restitched', 0, 1, @rowcount, @TableName) with nowait
+raiserror('%d %s history records restitched', 0, 1, @rowcount, @TableNameWithoutSchema) with nowait
 
 declare @q7 varchar(max)
 select @q7 = ';
 alter table ' + @TableName_Now + ' disable trigger all'
-
 exec(@q7)
 
 -- sync up Table_Now with history tips from Table
@@ -122,7 +122,6 @@ select @q8 = ';
 update ' + @TableName_Now + ' set AuditBegin=' + @TableName + '.AuditBegin
 from ' + @TableName + '
 where ' + @TableName + '.ID=' + @TableName_Now + '.ID and ' + @TableName + '.AuditEnd is null and ' + @TableName + '.AuditBegin<>' + @TableName_Now + '.AuditBegin'
-
 exec(@q8)
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -135,14 +134,15 @@ exec(@q9)
 if @error<>0 goto ERR
 raiserror('%d records syncd', 0, 1, @rowcount) with nowait
 
-declare @q10 varchar(max);
-set @q10 = ';
-if '+ CAST(@saveChanges as varchar(10)) + '=1 begin
+if @saveChanges=1 begin
+	declare @q10 varchar(max);
+	set @q10 = ';
 	DBCC DBREINDEX(['+@TableName+'])
 	exec dbo.AssetAudit_Rebuild
 	DBCC DBREINDEX([AssetAudit])
-end'
-exec(@q10)
+	'
+	exec(@q10)
+end
 
 FINISHED:
 if (@saveChanges = 1) goto OK
