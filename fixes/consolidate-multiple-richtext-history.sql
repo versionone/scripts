@@ -17,7 +17,7 @@ set @timeThreshold = 5
 -- Table column comparison
 declare @colsAB varchar(max)
 select @colsAB=(
-	select REPLACE(' and (A.{col}=C.{col} or (A.{col} is null and C.{col} is null))', '{col}', quotename(COLUMN_NAME))
+	select REPLACE(' and (A.{col}=B.{col} or (A.{col} is null and B.{col} is null))', '{col}', quotename(COLUMN_NAME))
 	from INFORMATION_SCHEMA.COLUMNS C
 	where C.TABLE_NAME=@TableName and COLUMN_NAME not in ('ID','AssetType','AuditBegin', @FieldName, 'AuditEnd')
 	for xml path('')
@@ -62,8 +62,7 @@ insert #bad(ID, CurrentAuditID, NextAuditID)
 select _.ID, CurrentAuditID, NextAuditID
 from #suspect _
 join dbo.' + @Table + ' A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
-join dbo.' + @Table + ' B on B.ID=_.ID and B.AuditBegin=_.NextAuditID
-join dbo.' + @Table + ' C on C.ID=_.ID and C.AuditEnd=_.CurrentAuditID AND ISNULL(C.' + @Field + ',-1) != ISNULL(A.' + @Field + ',-1) ' + @colsAB + '
+join dbo.' + @Table + ' B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.' + @Field + ',-1) != ISNULL(A.' + @Field + ',-1) ' + @colsAB + '
 if (''' + @saveChanges + ''' != ''1'') select NULL as ''#bad'', * from #bad
 
 -- Rows to purge
