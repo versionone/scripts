@@ -8,7 +8,7 @@
 declare @saveChanges bit = 0,
 @table sysname = 'Test',
 @field varchar(max) = 'ExpectedResults'
-@timeThreshold nvarchar(10) = '5',
+@timeThreshold real = 5,
 
 declare @colsAB varchar(max)
 select @colsAB=(
