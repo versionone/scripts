@@ -88,6 +88,10 @@ declare @template2 varchar(max) = '
 	where [@table].ID=A.ID and [@table].AuditBegin=A.AuditBegin
 	and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)
 
+	select @rowcount=@@ROWCOUNT, @error=@@ERROR
+	if @error<>0 goto ERR
+	raiserror(''%d history records restiched'', 0, 1, @rowcount) with nowait
+
 	-- sync up Table_Now with history tips from Table
 	alter table dbo.[@tblNow] disable trigger all
 	update dbo.[@tblNow] set AuditBegin=[@table].AuditBegin
