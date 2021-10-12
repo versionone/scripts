@@ -74,7 +74,7 @@ declare @template2 varchar(max) = '
 	declare @error int, @rowcount int
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
-	raiserror(''%d %s.%s historical records purged'', 0, 1, @rowcount, @tableName, @fldName)
+	raiserror(''%d %s.%s historical records purged'', 0, 1, @rowcount, @tableName, @fldName) with nowait
 	if @rowcount=0 goto FINISHED
 
 	--re-stitch Asset history
@@ -108,7 +108,7 @@ declare @template2 varchar(max) = '
 
 	FINISHED:
 	if (@saveChanges = 1) goto OK
-	raiserror(''Rolling back changes.  To commit changes, set saveChanges=1'',16,1)
+	raiserror(''Rolling back changes.  To commit changes, set saveChanges=1'',16,1) with nowait
 	ERR: rollback tran TX
 	OK: commit
 
