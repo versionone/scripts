@@ -33,17 +33,17 @@ declare @template2 varchar(max) = '
 	insert #assets(ID, CurrentAuditID, NextAuditID)
 	select aH.ID, aH.AuditID, bH.AuditID
 	from H as aH
-	join [@table] aAsset on aAsset.ID=aH.ID and aAsset.AssetType=aH.AssetType and aH.AuditID = aAsset.AuditBegin
+	join dbo.[@table] aAsset on aAsset.ID=aH.ID and aAsset.AssetType=aH.AssetType and aH.AuditID = aAsset.AuditBegin
 	join H as bH on bH.ID=aH.ID and aH.AssetType=bH.AssetType and bH.R=aH.R+1
-	join [@table] bAsset on bAsset.ID=bH.ID and bAsset.AssetType=bH.AssetType and bH.AuditID = bAsset.AuditBegin
+	join dbo.[@table] bAsset on bAsset.ID=bH.ID and bAsset.AssetType=bH.AssetType and bH.AuditID = bAsset.AuditBegin
 	if (@saveChanges != ''1'') select NULL as ''#assets'', * from #assets
 
 	-- Consecutive Asset changes
 	insert #suspect(ID, CurrentAuditID, NextAuditID)
 	select Assets.ID, Assets.CurrentAuditID, Assets.NextAuditID
 	from #assets as Assets
-	join [@table] currentAsset on currentAsset.ID=Assets.ID and currentAsset.AuditBegin=Assets.CurrentAuditID
-	join [@table] nextAsset on nextAsset.ID=Assets.ID and nextAsset.AuditBegin=Assets.NextAuditID
+	join dbo.[@table] currentAsset on currentAsset.ID=Assets.ID and currentAsset.AuditBegin=Assets.CurrentAuditID
+	join dbo.[@table] nextAsset on nextAsset.ID=Assets.ID and nextAsset.AuditBegin=Assets.NextAuditID
 	join dbo.Audit currentA on currentA.ID = Assets.CurrentAuditID
 	join dbo.Audit nextA on nextA.ID = Assets.NextAuditID
 	WHERE
@@ -56,18 +56,18 @@ declare @template2 varchar(max) = '
 	insert #bad(ID, CurrentAuditID, NextAuditID)
 	select _.ID, CurrentAuditID, NextAuditID
 	from #suspect _
-	join [@table] A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
-	join [@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.@field,-1) != ISNULL(A.@field,-1) ' + @colsAB + '
+	join dbo.[@table] A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
+	join dbo.[@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.@field,-1) != ISNULL(A.@field,-1) ' + @colsAB + '
 	if (@saveChanges != ''1'') select NULL as ''#bad'', * from #bad
 
 	-- Rows to purge
 	select NULL as ''will purge'', cAsset.ID, cAsset.AssetType, cAsset.AuditBegin, a.ChangedByID, a.ChangeDateUTC
 	from #bad b
-	join [@table] cAsset ON cAsset.ID=b.ID and cAsset.AuditBegin=b.CurrentAuditID
+	join dbo.[@table] cAsset ON cAsset.ID=b.ID and cAsset.AuditBegin=b.CurrentAuditID
 	join dbo.Audit a on a.ID = b.CurrentAuditID
 
 	-- Purge
-	delete [@table]
+	delete dbo.[@table]
 	from #bad
 	where [@table].ID=#bad.ID and [@table].AuditBegin=#bad.CurrentAuditID
 
@@ -81,9 +81,9 @@ declare @template2 varchar(max) = '
 	--re-stitch Asset history
 	;with H as (
 		select ID, AuditBegin, AuditEnd, R=ROW_NUMBER() over(partition by ID order by AuditBegin)
-		from [@table]
+		from dbo.[@table]
 	)
-	update [@table] set AuditEnd=B.AuditBegin
+	update dbo.[@table] set AuditEnd=B.AuditBegin
 	from H A
 	left join H B on A.ID=B.ID and A.R+1=B.R
 	where [@table].ID=A.ID and [@table].AuditBegin=A.AuditBegin
