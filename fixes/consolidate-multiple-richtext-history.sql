@@ -19,11 +19,11 @@ select @colsAB=(
 )
 
 declare @template2 varchar(max) = '
-	create table #assets(ID int not null, CurrentAuditID int not null, NextAuditID int not null)
-	create table #suspect(ID int not null, CurrentAuditID int not null, NextAuditID int not null)
-	create table #bad(ID int not null, CurrentAuditID int not null, NextAuditID int not null)
-
+	declare @error int, @rowcount int
 	set nocount on; begin tran; save tran TX
+
+	create table #assets(ID int not null, CurrentAuditID int not null, NextAuditID int not null)
+
 	-- Asset Rows
 	;with H as (
 		select AA.ID, AA.AssetType, AuditID, R=ROW_NUMBER() OVER(partition by AA.ID, AA.AssetType order by AuditID)
@@ -36,6 +36,8 @@ declare @template2 varchar(max) = '
 	join H as bH on bH.ID=aH.ID and aH.AssetType=bH.AssetType and bH.R=aH.R+1
 	join dbo.[@table] bAsset on bAsset.ID=bH.ID and bAsset.AssetType=bH.AssetType and bH.AuditID = bAsset.AuditBegin
 	if (@saveChanges != 1) select NULL as ''#assets'', * from #assets
+
+	create table #suspect(ID int not null, CurrentAuditID int not null, NextAuditID int not null)
 
 	-- Consecutive Asset changes
 	insert #suspect(ID, CurrentAuditID, NextAuditID)
@@ -51,13 +53,19 @@ declare @template2 varchar(max) = '
 	AND	ISNULL(currentAsset.[@field],-1) != ISNULL(nextAsset.[@field],-1) --@FieldName has changed
 	if (@saveChanges != 1) select NULL as ''#suspect'', * from #suspect
 
+	drop table #assets
+
 	-- consecutive redundant entries
+	create table #bad(ID int not null, CurrentAuditID int not null, NextAuditID int not null)
+
 	insert #bad(ID, CurrentAuditID, NextAuditID)
 	select _.ID, CurrentAuditID, NextAuditID
 	from #suspect _
 	join dbo.[@table] A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
 	join dbo.[@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.[@field],-1) != ISNULL(A.[@field],-1) {@colsAB}
 	if (@saveChanges != 1) select NULL as ''#bad'', * from #bad
+
+	drop table #suspect
 
 	-- Rows to purge
 	select NULL as ''will purge'', cAsset.ID, cAsset.AssetType, cAsset.AuditBegin, a.ChangedByID, a.ChangeDateUTC
@@ -70,9 +78,11 @@ declare @template2 varchar(max) = '
 	from #bad
 	where [@table].ID=#bad.ID and [@table].AuditBegin=#bad.CurrentAuditID
 
-	-- Check for errors
-	declare @error int, @rowcount int
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
+
+	drop table #bad
+
+	-- Check for errors
 	if @error<>0 goto ERR
 	raiserror(''%d %s.%s historical records purged'', 0, 1, @rowcount, @tableName, @fldName) with nowait
 	if @rowcount=0 goto FINISHED
@@ -118,10 +128,6 @@ declare @template2 varchar(max) = '
 	raiserror(''Rolling back changes.  To commit changes, set saveChanges=1'',16,1) with nowait
 	ERR: rollback tran TX
 	OK: commit
-
-	drop table #bad
-	drop table #suspect
-	drop table #assets
 '
 declare @sql varchar(max) = @template2
 select @sql = replace(@sql, token, value) from (values
