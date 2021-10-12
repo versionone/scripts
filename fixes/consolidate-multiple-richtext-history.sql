@@ -49,7 +49,7 @@ declare @template2 varchar(max) = '
 	WHERE
 	ISNULL(currentA.ChangedByID,-1) = ISNULL(nextA.ChangedByID,-1)  -- Consecutive changes from the same user
 	AND DATEDIFF(mi,currentA.ChangeDateUTC,nextA.ChangeDateUTC) <= @timeThreshold --Time threshold / period / lapse.
-	AND	ISNULL(currentAsset.@field,-1) != ISNULL(nextAsset.@field,-1) --@FieldName has changed
+	AND	ISNULL(currentAsset.[@field],-1) != ISNULL(nextAsset.[@field],-1) --@FieldName has changed
 	if (@saveChanges != ''1'') select NULL as ''#suspect'', * from #suspect
 
 	-- consecutive redundant entries
@@ -57,7 +57,7 @@ declare @template2 varchar(max) = '
 	select _.ID, CurrentAuditID, NextAuditID
 	from #suspect _
 	join dbo.[@table] A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
-	join dbo.[@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.@field,-1) != ISNULL(A.@field,-1) ' + @colsAB + '
+	join dbo.[@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.[@field],-1) != ISNULL(A.[@field],-1) ' + @colsAB + '
 	if (@saveChanges != ''1'') select NULL as ''#bad'', * from #bad
 
 	-- Rows to purge
@@ -124,7 +124,7 @@ select @sql = replace(@sql, token, value) from (values
 	('@tblNow', quotename(@tableName + '_Now')),
 	('@saveChanges', quotename(@saveChanges, '''')),
 	('@timeThreshold', @timeThreshold),
-	('@field', @field),
+	('[@field]', quotename(@field)),
 	('@fldName', quotename(@field, ''''))
 ) _(token, value)
 
