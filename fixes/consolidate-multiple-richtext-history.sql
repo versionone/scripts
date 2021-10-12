@@ -94,13 +94,16 @@ declare @template2 varchar(max) = '
 
 	-- sync up Table_Now with history tips from Table
 	alter table dbo.[@tblNow] disable trigger all
+
 	update dbo.[@tblNow] set AuditBegin=[@table].AuditBegin
 	from dbo.[@table]
 	where [@table].ID=[@tblNow].ID and [@table].AuditEnd is null and [@table].AuditBegin<>[@tblNow].AuditBegin
+
+	select @rowcount=@@ROWCOUNT, @error=@@ERROR
+
 	alter table dbo.[@tblNow] enable trigger all
 
 	-- Log number of _Now records synced
-	select @rowcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
 	raiserror(''%d records syncd'', 0, 1, @rowcount) with nowait
 
