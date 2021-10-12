@@ -57,7 +57,7 @@ declare @template2 varchar(max) = '
 	select _.ID, CurrentAuditID, NextAuditID
 	from #suspect _
 	join dbo.[@table] A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
-	join dbo.[@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.[@field],-1) != ISNULL(A.[@field],-1) ' + @colsAB + '
+	join dbo.[@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.[@field],-1) != ISNULL(A.[@field],-1) {@colsAB}
 	if (@saveChanges != ''1'') select NULL as ''#bad'', * from #bad
 
 	-- Rows to purge
@@ -125,7 +125,8 @@ select @sql = replace(@sql, token, value) from (values
 	('@saveChanges', quotename(@saveChanges, '''')),
 	('@timeThreshold', @timeThreshold),
 	('[@field]', quotename(@field)),
-	('@fldName', quotename(@field, ''''))
+	('@fldName', quotename(@field, '''')),
+	('{colsAB}', @colsAB)
 ) _(token, value)
 
 --print @sql
