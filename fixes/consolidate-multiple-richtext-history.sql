@@ -7,9 +7,8 @@
 
 declare @saveChanges bit = 0,
 @table sysname = 'Test',
-@tableName varchar(100) = 'Test',
-@timeThreshold nvarchar(10) = '5',
 @field varchar(max) = 'ExpectedResults'
+@timeThreshold nvarchar(10) = '5',
 
 declare @colsAB varchar(max)
 select @colsAB=(
@@ -120,8 +119,8 @@ declare @template2 varchar(max) = '
 declare @sql varchar(max) = @template2
 select @sql = replace(@sql, token, value) from (values
 	('[@table]', quotename(@table)),
-	('@tableName', quotename(@tableName, '''')),
-	('@tblNow', quotename(@tableName + '_Now')),
+	('@tableName', quotename(@table, '''')),
+	('@tblNow', quotename(@table + '_Now')),
 	('@saveChanges', @saveChanges),
 	('@timeThreshold', @timeThreshold),
 	('[@field]', quotename(@field)),
