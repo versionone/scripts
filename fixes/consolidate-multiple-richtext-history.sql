@@ -2,11 +2,11 @@
  *	Consolidate field history records, on configurable time threshold (@timeThreshold) in minutes.
  *
  *	NOTE:  This script defaults to rolling back changes.
- *		To commit changes, set @saveChanges = '1'.
+ *		To commit changes, set @saveChanges = 1.
  */
 
-@saveChanges nvarchar(100) = '0',
-declare @table sysname = 'Test',
+declare @saveChanges bit = 0,
+@table sysname = 'Test',
 @tableName varchar(100) = 'Test',
 @timeThreshold nvarchar(10) = '5',
 @field varchar(max) = 'ExpectedResults'
@@ -36,7 +36,7 @@ declare @template2 varchar(max) = '
 	join dbo.[@table] aAsset on aAsset.ID=aH.ID and aAsset.AssetType=aH.AssetType and aH.AuditID = aAsset.AuditBegin
 	join H as bH on bH.ID=aH.ID and aH.AssetType=bH.AssetType and bH.R=aH.R+1
 	join dbo.[@table] bAsset on bAsset.ID=bH.ID and bAsset.AssetType=bH.AssetType and bH.AuditID = bAsset.AuditBegin
-	if (@saveChanges != ''1'') select NULL as ''#assets'', * from #assets
+	if (@saveChanges != 1) select NULL as ''#assets'', * from #assets
 
 	-- Consecutive Asset changes
 	insert #suspect(ID, CurrentAuditID, NextAuditID)
@@ -50,7 +50,7 @@ declare @template2 varchar(max) = '
 	ISNULL(currentA.ChangedByID,-1) = ISNULL(nextA.ChangedByID,-1)  -- Consecutive changes from the same user
 	AND DATEDIFF(mi,currentA.ChangeDateUTC,nextA.ChangeDateUTC) <= @timeThreshold --Time threshold / period / lapse.
 	AND	ISNULL(currentAsset.[@field],-1) != ISNULL(nextAsset.[@field],-1) --@FieldName has changed
-	if (@saveChanges != ''1'') select NULL as ''#suspect'', * from #suspect
+	if (@saveChanges != 1) select NULL as ''#suspect'', * from #suspect
 
 	-- consecutive redundant entries
 	insert #bad(ID, CurrentAuditID, NextAuditID)
@@ -58,7 +58,7 @@ declare @template2 varchar(max) = '
 	from #suspect _
 	join dbo.[@table] A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
 	join dbo.[@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.[@field],-1) != ISNULL(A.[@field],-1) {@colsAB}
-	if (@saveChanges != ''1'') select NULL as ''#bad'', * from #bad
+	if (@saveChanges != 1) select NULL as ''#bad'', * from #bad
 
 	-- Rows to purge
 	select NULL as ''will purge'', cAsset.ID, cAsset.AssetType, cAsset.AuditBegin, a.ChangedByID, a.ChangeDateUTC
@@ -101,15 +101,15 @@ declare @template2 varchar(max) = '
 	if @error<>0 goto ERR
 	raiserror(''%d records syncd'', 0, 1, @rowcount) with nowait
 
-	if @saveChanges = ''1'' begin
+	if @saveChanges = 1 begin
 		DBCC DBREINDEX([@table])
 		exec dbo.AssetAudit_Rebuild
 		DBCC DBREINDEX(AssetAudit)
 	end
 
 	FINISHED:
-	if (@saveChanges = ''1'') goto OK
-	raiserror(''Rolling back changes.  To commit changes, set saveChanges="1"'',16,1)
+	if (@saveChanges = 1) goto OK
+	raiserror(''Rolling back changes.  To commit changes, set saveChanges=1'',16,1)
 	ERR: rollback tran TX
 	OK: commit
 
@@ -122,7 +122,7 @@ select @sql = replace(@sql, token, value) from (values
 	('[@table]', quotename(@table)),
 	('@tableName', quotename(@tableName, '''')),
 	('@tblNow', quotename(@tableName + '_Now')),
-	('@saveChanges', quotename(@saveChanges, '''')),
+	('@saveChanges', @saveChanges),
 	('@timeThreshold', @timeThreshold),
 	('[@field]', quotename(@field)),
 	('@fldName', quotename(@field, '''')),
