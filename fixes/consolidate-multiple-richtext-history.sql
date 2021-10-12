@@ -89,11 +89,11 @@ declare @template2 varchar(max) = '
 	and isnull(A.AuditEnd,-1)<>isnull(B.AuditBegin,-1)
 
 	-- sync up Table_Now with history tips from Table
-	alter table dbo.@tblNow disable trigger all
-	update dbo.@tblNow set AuditBegin=[@table].AuditBegin
+	alter table dbo.[@tblNow] disable trigger all
+	update dbo.[@tblNow] set AuditBegin=[@table].AuditBegin
 	from dbo.[@table]
-	where [@table].ID=@tblNow.ID and [@table].AuditEnd is null and [@table].AuditBegin<>@tblNow.AuditBegin
-	alter table dbo.@tblNow enable trigger all
+	where [@table].ID=[@tblNow].ID and [@table].AuditEnd is null and [@table].AuditBegin<>[@tblNow].AuditBegin
+	alter table dbo.[@tblNow] enable trigger all
 
 	-- Log number of _Now records synced
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -120,7 +120,7 @@ declare @sql varchar(max) = @template2
 select @sql = replace(@sql, token, value) from (values
 	('[@table]', quotename(@table)),
 	('@tableName', quotename(@table, '''')),
-	('@tblNow', quotename(@table + '_Now')),
+	('[@tblNow]', quotename(@table + '_Now')),
 	('@saveChanges', @saveChanges),
 	('@timeThreshold', @timeThreshold),
 	('[@field]', quotename(@field)),
