@@ -134,8 +134,8 @@ select @sql = replace(@sql, token, value) from (values
 	('[@table]', quotename(@table)),
 	('@tableName', quotename(@table, '''')),
 	('[@tblNow]', quotename(@table + '_Now')),
-	('@saveChanges', @saveChanges),
-	('@timeThreshold', @timeThreshold),
+	('@saveChanges', cast(@saveChanges as nvarchar(max)),
+	('@timeThreshold', cast(@timeThreshold as nvarchar(max)),
 	('[@field]', quotename(@field)),
 	('@fldName', quotename(@field, '''')),
 	('{colsAB}', @colsAB)
