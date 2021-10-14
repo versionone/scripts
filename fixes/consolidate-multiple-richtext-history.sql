@@ -7,10 +7,10 @@
 
 declare @saveChanges bit = 0,
 @table sysname = 'Test',
-@field varchar(max) = 'ExpectedResults'
+@field varchar(max) = 'ExpectedResults',
 @timeThreshold real = 5,
+@colsAB varchar(max)
 
-declare @colsAB varchar(max)
 select @colsAB=(
 	select REPLACE(' and (A.{col}=B.{col} or (A.{col} is null and B.{col} is null))', '{col}', quotename(COLUMN_NAME))
 	from INFORMATION_SCHEMA.COLUMNS C
@@ -62,7 +62,7 @@ declare @template2 varchar(max) = '
 	select _.ID, CurrentAuditID, NextAuditID
 	from #suspect _
 	join dbo.[@table] A on A.ID=_.ID and A.AuditBegin=_.CurrentAuditID
-	join dbo.[@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.[@field],-1) != ISNULL(A.[@field],-1) {@colsAB}
+	join dbo.[@table] B on B.ID=_.ID and B.AuditEnd=_.CurrentAuditID AND ISNULL(B.[@field],-1) != ISNULL(A.[@field],-1) {colsAB}
 	if (@saveChanges != 1) select NULL as ''#bad'', * from #bad
 
 	drop table #suspect
