@@ -102,21 +102,6 @@ declare @template2 varchar(max) = '
 	if @error<>0 goto ERR
 	raiserror(''%d history records restiched'', 0, 1, @rowcount) with nowait
 
-	-- sync up Table_Now with history tips from Table
-	alter table dbo.[@tblNow] disable trigger all
-
-	update dbo.[@tblNow] set AuditBegin=[@table].AuditBegin
-	from dbo.[@table]
-	where [@table].ID=[@tblNow].ID and [@table].AuditEnd is null and [@table].AuditBegin<>[@tblNow].AuditBegin
-
-	select @rowcount=@@ROWCOUNT, @error=@@ERROR
-
-	alter table dbo.[@tblNow] enable trigger all
-
-	-- Log number of _Now records synced
-	if @error<>0 goto ERR
-	raiserror(''%d records syncd'', 0, 1, @rowcount) with nowait
-
 	if @saveChanges = 1 begin
 		DBCC DBREINDEX([@table])
 		exec dbo.AssetAudit_Rebuild
@@ -133,7 +118,6 @@ declare @sql varchar(max) = @template2
 select @sql = replace(@sql, token, value) from (values
 	('[@table]', quotename(@table)),
 	('@tableName', quotename(@table, '''')),
-	('[@tblNow]', quotename(@table + '_Now')),
 	('@saveChanges', cast(@saveChanges as nvarchar(max))),
 	('@timeThreshold', cast(@timeThreshold as nvarchar(max))),
 	('[@field]', quotename(@field)),
