@@ -18,20 +18,12 @@ from dbo.ProfileValue
 join #T T on ProfileValue.Path=T.Path 
 where Value like '%px'
 
+delete dbo.ProfileValue 
+from #T T 
+where ProfileValue.Path=T.Path and Value like '%px'
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-
-if @saveChanges is null
-BEGIN
-	print @rowcount + ' rows to be deleted'
-END
-else
-BEGIN
-	delete dbo.ProfileValue 
-	from #T T 
-	where ProfileValue.Path=T.Path and Value like '%px'
-	print @rowcount + ' rows deleted'
-END
+print @rowcount + ' rows deleted'
 
 drop table #T
 
