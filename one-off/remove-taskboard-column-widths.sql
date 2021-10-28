@@ -23,7 +23,7 @@ from #T T
 where ProfileValue.Path=T.Path and Value like '%px'
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-print @rowcount + ' rows deleted'
+raiserror('%d ProfileValues deleted', 0, 1, @rowcount) with nowait
 
 drop table #T
 
