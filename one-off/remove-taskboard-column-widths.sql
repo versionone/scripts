@@ -10,21 +10,30 @@ declare @saveChanges bit; --set @saveChanges = 1
 declare @error int, @rowcount varchar(20)
 set nocount on; begin tran; save tran TX
 
-if @saveChanges is null
-	SELECT dbo.Profile_PathBinToStr([PATH]), [VALUE]
-	  FROM dbo.[ProfileValue]
-	  where [Value] like '%px' and dbo.Profile_PathBinToStr([PATH]) like '%/Gadgets/TeamRoom/TaskBoard/Widths/%'
+create table #T(Path varbinary(400) not null primary key)
+insert into #T exec dbo.Profile_PathsByWildcard '/user/*/Gadgets/TeamRoom/TaskBoard/Widths'
 
-else
-	DELETE
-	  FROM dbo.[ProfileValue]
-	  where [Value] like '%px' and dbo.Profile_PathBinToStr([PATH]) like '%/Gadgets/TeamRoom/TaskBoard/Widths/%'
-
+select dbo.Profile_PathBinToStr(ProfileValue.Path), Value 
+from dbo.ProfileValue
+join #T T on ProfileValue.Path=T.Path 
+where Value like '%px'
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
-print @rowcount + ' AssetAudits' + iif(@saveChanges is null, ' to be deleted','deleted')
 
+if @saveChanges is null
+BEGIN
+	print @rowcount + ' rows to be deleted'
+END
+else
+BEGIN
+	delete dbo.ProfileValue 
+	from #T T 
+	where ProfileValue.Path=T.Path and Value like '%px'
+	print @rowcount + ' rows deleted'
+END
+
+drop table #T
 
 if (@saveChanges = 1) goto OK
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
