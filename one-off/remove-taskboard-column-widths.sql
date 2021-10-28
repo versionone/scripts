@@ -7,7 +7,7 @@
 
 declare @saveChanges bit; --set @saveChanges = 1
 
-declare @error int, @rowcount varchar(20)
+declare @error int, @rowcount int
 set nocount on; begin tran; save tran TX
 
 create table #T(Path varbinary(400) not null primary key)
