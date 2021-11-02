@@ -173,10 +173,9 @@ begin
 	declare @auditid int,@error int, @rowcount varchar(20), @assetcount int, @assetcountprogress int
 
 	;with TestsWithStatus as (
-		select t.ID, t.AuditBegin, t.AuditEnd, t.StatusID, t.AssetType, sta.AuditEnd StatusAuditEnd,strings.Value
+		select t.ID, t.AuditBegin, t.AuditEnd, t.StatusID, t.AssetType, list.AuditEnd StatusAuditEnd,strings.Value
 		from Test t
-		join Status sta on t.StatusID = sta.ID
-		join List list on sta.ID = list.ID
+		join List list on t.StatusID = list.ID
 		join String strings on list.Name = strings.ID
 	)
 
