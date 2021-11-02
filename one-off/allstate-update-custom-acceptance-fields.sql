@@ -61,7 +61,7 @@ begin
 end
 go
 
-create proc dbo.__BackfillAllStateCustomFields
+create proc dbo.__BackfillAllStateCustomFields_ForPrimaryWorkitems
 	@customDateDefinition varchar(201),
 	@customTextDefinition varchar(201),
 	@status nvarchar(4000),
@@ -90,6 +90,102 @@ begin
 	cross apply (
 		select top 1 *
 		from PrimaryWorkitemsWithStatus prev
+		where prev.ID = curr.ID and prev.AuditBegin < curr.AuditBegin and curr.StatusID <> prev.StatusID
+		order by prev.AuditBegin desc
+	) _
+	join dbo.Audit a on a.ID =  _.AuditEnd
+	join dbo.BaseAsset_Now ba on a.ChangedByID = ba.ID
+	left join dbo.[CustomDate] acceptedbydate on (acceptedbydate.[ID]=curr.[ID] and acceptedbydate.[Definition]=@customDateDefinition and acceptedbydate.[AuditEnd] is null)
+	left join dbo.[CustomText] acceptedby on (acceptedby.[ID]=curr.[ID] and acceptedby.[Definition]=@customTextDefinition and acceptedby.[AuditEnd] is null)
+	where 
+	curr.AuditEnd is null
+	and curr.StatusAuditEnd is null
+	and (acceptedbydate.ID is null or acceptedby.ID is null)
+	and curr.Value = @status
+	and a.ChangeDateUTC > @datefrom
+	and curr.AssetType = @assettype
+
+	select @assetcount=@@ROWCOUNT, @error=@@ERROR
+	if @error<>0 goto ERR
+	raiserror('%i %s to backfill.', 1, 1, @assetcount, @assettype)
+	set nocount on;
+	
+	set @assetcountprogress = 0
+	begin tran; save tran TX
+
+	declare @ID int, @InstigatorStringID int, @ChangeDateUTC datetime, @CustomDateID int, @CustomTextID int
+	declare C cursor local fast_forward for
+	select [ID], [InstigatorStringID], [ChangeDateUTC], [CustomDateID], [CustomTextID] 
+	from #KeySet
+	open C
+	while 1=1 begin
+		fetch next from C into @ID, @InstigatorStringID, @ChangeDateUTC, @CustomDateID, @CustomTextID
+		if @@FETCH_STATUS<>0 break
+
+		set @assetcountprogress = @assetcountprogress + 1
+
+		raiserror('Progress: %i/%i', 1, 1, @assetcountprogress, @assetcount)
+
+		exec __SeedAuditCreate @changereason,@changecomment,@changedbyid,@auditid OUTPUT
+
+		raiserror('Audit created:  @changereason:%s,  @changecomment:%s, @changedbyid:%i, @auditid: %i', 1, 1, @changereason,@changecomment,@changedbyid,@auditid)
+
+		if (@CustomDateID is null)
+		begin
+			exec dbo.__SetCustomDate @customDateDefinition, @ID, @auditid, @ChangeDateUTC
+			if @@ERROR<>0 goto ERR
+			raiserror('Custom date filled: @customDateDefinition:%s, @ID:%i, @auditid:%i', 1, 1, @customDateDefinition, @ID, @auditid)
+		end
+		if (@CustomTextID is null)
+		begin
+			exec dbo.__SetCustomText @customTextDefinition, @ID, @auditid, @InstigatorStringID
+			if @@ERROR<>0 goto ERR
+			raiserror('Custom text filled: @customTextDefinition:%s, @ID:%i, @auditid:%i, @InstigatorStringID:%i', 1, 1, @customTextDefinition, @ID, @auditid, @InstigatorStringID)
+		end
+
+		exec _SaveAssetAudit @ID, @assettype, @auditid
+		if @@ERROR<>0 goto ERR
+		raiserror('AssetAudit saved: @ID:%i, @assettype:%s, @auditid:%i', 1, 1, @ID, @assettype, @auditid)
+	end
+	close C
+	deallocate C
+	if @saveChanges=1 goto OK
+	raiserror('Rolling back changes.  To commit changes, set @saveChanges=1',16,1)
+	ERR: rollback tran TX
+	OK: commit
+	DONE:
+end
+go
+
+create proc dbo.__BackfillAllStateCustomFields_ForTests
+	@customDateDefinition varchar(201),
+	@customTextDefinition varchar(201),
+	@status nvarchar(4000),
+	@datefrom datetime,
+	@assettype varchar(100),
+	@changereason nvarchar(4000) = N'Backfill custom fields',
+	@changecomment nvarchar(4000) = N'Backfill custom fields',
+	@changedbyid int = 20,
+	@savechanges bit = 0
+as
+begin
+	create table #KeySet ([ID] int, [InstigatorStringID] int, [ChangeDateUTC] datetime, [CustomDateID] int, [CustomTextID] int)
+	declare @auditid int,@error int, @rowcount varchar(20), @assetcount int, @assetcountprogress int
+
+	;with TestsWithStatus as (
+		select t.ID, t.AuditBegin, t.AuditEnd, t.StatusID, t.AssetType, sta.AuditEnd StatusAuditEnd,strings.Value
+		from Test t
+		join Status sta on t.StatusID = sta.ID
+		join List list on sta.ID = list.ID
+		join String strings on list.Name = strings.ID
+	)
+
+	insert into #KeySet
+	select curr.ID, ba.Name, a.ChangeDateUTC, acceptedbydate.ID, acceptedby.ID
+	from TestsWithStatus curr
+	cross apply (
+		select top 1 *
+		from TestsWithStatus prev
 		where prev.ID = curr.ID and prev.AuditBegin < curr.AuditBegin and curr.StatusID <> prev.StatusID
 		order by prev.AuditBegin desc
 	) _
