@@ -108,6 +108,12 @@ begin
 	select @assetcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
 	raiserror('%i %s to backfill.', 1, 1, @assetcount, @assettype)
+
+	select @assettype + ':'+ cast(ks.[ID] as varchar) as Oid, w.Number, s.Value [AcceptedBy], ks.ChangeDateUTC [AcceptedByDateUTC]
+	from #KeySet ks
+	join dbo.Workitem_Now w on ks.ID = w.ID
+	join dbo.String s on s.ID = ks.InstigatorStringID
+
 	set nocount on;
 	
 	set @assetcountprogress = 0
@@ -203,6 +209,12 @@ begin
 	select @assetcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
 	raiserror('%i %s to backfill.', 1, 1, @assetcount, @assettype)
+
+	select @assettype + ':'+ cast(ks.[ID] as varchar) as Oid, w.Number, s.Value [AcceptedBy], ks.ChangeDateUTC [AcceptedByDateUTC]
+	from #KeySet ks
+	join dbo.Workitem_Now w on ks.ID = w.ID
+	join dbo.String s on s.ID = ks.InstigatorStringID
+
 	set nocount on;
 	
 	set @assetcountprogress = 0
