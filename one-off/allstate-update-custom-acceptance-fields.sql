@@ -77,10 +77,10 @@ begin
 	declare @auditid int,@error int, @rowcount varchar(20), @assetcount int, @assetcountprogress int
 
 	;with PrimaryWorkitemsWithStatus as (
-		select pwi.ID, pwi.AuditBegin, pwi.AuditEnd, pwi.StatusID, pwi.AssetType, sta.AuditEnd StatusAuditEnd,strings.Value
-		from PrimaryWorkitem pwi
-		join Status sta on pwi.StatusID = sta.ID
-		join List list on sta.ID = list.ID
+		select pwi.ID, pwi.AuditBegin, pwi.StatusID, pwi.AssetType, strings.Value
+		from dbo.PrimaryWorkitem_Now pwi
+		join dbo.Status_Now sta on pwi.StatusID = sta.ID
+		join dbo.List_Now list on sta.ID = list.ID
 		join String strings on list.Name = strings.ID
 	)
 
@@ -89,18 +89,16 @@ begin
 	from PrimaryWorkitemsWithStatus curr
 	cross apply (
 		select top 1 *
-		from PrimaryWorkitemsWithStatus prev
-		where prev.ID = curr.ID and prev.AuditBegin < curr.AuditBegin and curr.StatusID <> prev.StatusID
+		from dbo.PrimaryWorkitem prev
+		where prev.ID = curr.ID and prev.AuditBegin < curr.AuditBegin and (curr.StatusID <> prev.StatusID or prev.StatusID is null)
 		order by prev.AuditBegin desc
 	) _
 	join dbo.Audit a on a.ID =  _.AuditEnd
 	join dbo.BaseAsset_Now ba on a.ChangedByID = ba.ID
-	left join dbo.[CustomDate] acceptedbydate on (acceptedbydate.[ID]=curr.[ID] and acceptedbydate.[Definition]=@customDateDefinition and acceptedbydate.[AuditEnd] is null)
-	left join dbo.[CustomText] acceptedby on (acceptedby.[ID]=curr.[ID] and acceptedby.[Definition]=@customTextDefinition and acceptedby.[AuditEnd] is null)
+	left join dbo.CustomDate acceptedbydate on (acceptedbydate.[ID]=curr.[ID] and acceptedbydate.[Definition]=@customDateDefinition and acceptedbydate.[AuditEnd] is null)
+	left join dbo.CustomText acceptedby on (acceptedby.[ID]=curr.[ID] and acceptedby.[Definition]=@customTextDefinition and acceptedby.[AuditEnd] is null)
 	where 
-	curr.AuditEnd is null
-	and curr.StatusAuditEnd is null
-	and (acceptedbydate.ID is null or acceptedby.ID is null)
+	(acceptedbydate.ID is null or acceptedby.ID is null)
 	and curr.Value = @status
 	and a.ChangeDateUTC > @datefrom
 	and curr.AssetType = @assettype
@@ -179,10 +177,10 @@ begin
 	declare @auditid int,@error int, @rowcount varchar(20), @assetcount int, @assetcountprogress int
 
 	;with TestsWithStatus as (
-		select t.ID, t.AuditBegin, t.AuditEnd, t.StatusID, t.AssetType, list.AuditEnd StatusAuditEnd,strings.Value
-		from Test t
-		join List list on t.StatusID = list.ID
-		join String strings on list.Name = strings.ID
+		select t.ID, t.AuditBegin, t.StatusID, t.AssetType, strings.Value
+		from dbo.Test_Now t
+		join dbo.List_Now list on t.StatusID = list.ID
+		join dbo.String strings on list.Name = strings.ID
 	)
 
 	insert into #KeySet
@@ -190,18 +188,15 @@ begin
 	from TestsWithStatus curr
 	cross apply (
 		select top 1 *
-		from TestsWithStatus prev
-		where prev.ID = curr.ID and prev.AuditBegin < curr.AuditBegin and curr.StatusID <> prev.StatusID
+		from dbo.Test prev
+		where prev.ID = curr.ID and prev.AuditBegin < curr.AuditBegin and (curr.StatusID <> prev.StatusID or prev.StatusID is null)
 		order by prev.AuditBegin desc
 	) _
 	join dbo.Audit a on a.ID =  _.AuditEnd
 	join dbo.BaseAsset_Now ba on a.ChangedByID = ba.ID
-	left join dbo.[CustomDate] acceptedbydate on (acceptedbydate.[ID]=curr.[ID] and acceptedbydate.[Definition]=@customDateDefinition and acceptedbydate.[AuditEnd] is null)
-	left join dbo.[CustomText] acceptedby on (acceptedby.[ID]=curr.[ID] and acceptedby.[Definition]=@customTextDefinition and acceptedby.[AuditEnd] is null)
-	where 
-	curr.AuditEnd is null
-	and curr.StatusAuditEnd is null
-	and (acceptedbydate.ID is null or acceptedby.ID is null)
+	left join dbo.CustomDate acceptedbydate on (acceptedbydate.[ID]=curr.[ID] and acceptedbydate.[Definition]=@customDateDefinition and acceptedbydate.[AuditEnd] is null)
+	left join dbo.CustomText acceptedby on (acceptedby.[ID]=curr.[ID] and acceptedby.[Definition]=@customTextDefinition and acceptedby.[AuditEnd] is null)
+	where (acceptedbydate.ID is null or acceptedby.ID is null)
 	and curr.Value = @status
 	and a.ChangeDateUTC > @datefrom
 	and curr.AssetType = @assettype
