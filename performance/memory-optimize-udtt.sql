@@ -196,6 +196,6 @@ open X; while 1=1 begin
 	fetch next from X into @sql
 	if @@FETCH_STATUS<>0 break
 	print(@sql)
-	--exec(@sql)
+	exec(@sql)
 end; close X; deallocate X
 
