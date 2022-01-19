@@ -8,23 +8,15 @@
  */
 
 declare @saveChanges bit; --set @saveChanges = 1
-declare @supportedVersions varchar(1000); select @supportedVersions='10.2.*, 10.3.*, 11.*, 12.*, 13.*, 14.*, 15.*, 16.*, 17.*, 18.*, 19.*'
 
--- Ensure the correct database version
-BEGIN
-	declare @sep char(2); select @sep=', '
-	if not exists(select *
-		from dbo.SystemConfig
-		join (
-		select SUBSTRING(@supportedVersions, C.Value+1, CHARINDEX(@sep, @supportedVersions+@sep, C.Value+1)-C.Value-1) as Value
-		from dbo.Counter C
-		where C.Value < DataLength(@supportedVersions) and SUBSTRING(@sep+@supportedVersions, C.Value+1, DataLength(@sep)) = @sep
-		) Version on SystemConfig.Value like REPLACE(Version.Value, '*', '%') and SystemConfig.Name = 'Version'
-	) begin
-			raiserror('Only supported on version(s) %s',16,1, @supportedVersions)
-			goto DONE
-	end
-END
+if not exists (select * from INFORMATION_SCHEMA.COLUMNS where 
+	TABLE_SCHEMA='dbo' and 
+	TABLE_NAME='LongString' and 
+	COLUMN_NAME='Value'
+) begin
+	raiserror('Unsupported database',16,1)
+	goto DONE
+end
 
 declare @error int, @rowcount int
 set nocount on; begin tran; save tran TX
