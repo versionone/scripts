@@ -29,9 +29,6 @@ To remove any redundant history in your VersionOne database, run these scripts *
 	- _Edit the start of this script to set @saveChanges = 1_
 7. remove-redundant-BaseAssert-reopen-and-close-history
 	- _Edit the start of this script to set --set @saveChanges = 1
-8. Consolidate description field history records
-	- _Edit the start of this script to set --set @saveChanges = 1
-	- _Edit the time threshold value @timeThreshold int;
 
 
 ### Verifying Historical Integrity
@@ -118,10 +115,6 @@ To use this script, it must be edited to specify exactly _which_ asset's history
 
 Additionally, by default, this script **will not commit** its changes; to save changes, edit the _start_ of the script, uncommenting the `set @saveChanges = 1` statement.
 
-
-## Details: Consolidate description field history records
-#### consolidate-multiple-description-history.sql
-This script will consolidate history records for assets. It consolidates enrties that are created when there are multiple changes to a description on an asset. This script will remove the history entries that are created when no changes are made to the description. Ex. clicking in the description field and then clicking out.
 
 ## Details: Consolidate consecutive re-open/close historical BaseAsset records
 #### remove-redundant-BaseAssert-reopen-and-close-history.sql
