@@ -39,7 +39,8 @@ UPDATE WorkitemTrends set
     TotalToDo = PrimaryWorkitem.TotalToDo
 from Fact.Workitem WorkitemTrends
 join Fact.PrimaryWorkitem PrimaryWorkitem on PrimaryWorkitem.WorkitemKey = WorkitemTrends.WorkitemKey
-where WorkitemTrends.TotalDetailEstimate in (select distinct DateKey
+    and PrimaryWorkitem.DateKey = WorkitemTrends.DateKey
+where WorkitemTrends.DateKey in (select distinct DateKey
 from Fact.PrimaryWorkitem
 where TotalDetailEstimate is null);
 
