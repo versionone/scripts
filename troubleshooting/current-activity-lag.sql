@@ -1,14 +1,19 @@
 ;with M as (
-	select Now=GETUTCDATE(), MaxSequence=convert(int, ltrim(rtrim(substring(Value, patindex('%"MaxSequence":%', Value)+14, patindex('%'+CHAR(13)+char(10)+'}%', Value)-patindex('%"MaxSequence": %', Value)-14))))
+	select Now=GETUTCDATE(), MaxSequence=cast(JSON_VALUE(Value, '$.MaxSequence') as int)
 	from Config 
 	where Instance='MetaStreamSubscription' and Type='CatchupSubscriptionManager'
 ),
-A as (select top 1 * from Commits order by CommitSequence desc),
-B as (select Commits.*, Now from Commits join M on M.MaxSequence=CommitSequence)
+ActivityStreamCommits as (
+	select cast(CommitStamp as datetime) CommitStamp, CheckpointNumber, CommitSequence
+	from Commits
+	where BucketId = 'Meta' and StreamId = '1EE3982777943C1BD64B154C4B5008DC0C3815A0'
+),
+A as (select top 1 CommitStamp from ActivityStreamCommits order by CheckpointNumber desc),
+B as (select CommitStamp, Now from ActivityStreamCommits join M on M.MaxSequence=CommitSequence)
 select 
 	Now,
 	Latest=A.CommitStamp, 
 	Processed=B.CommitStamp, 
-	Behind_Sec=DATEDIFF(s, B.CommitStamp, A.CommitStamp),
-	Lag_Sec=DATEDIFF(s, B.CommitStamp, Now)
+	Behind_Min=CONVERT(FLOAT,A.CommitStamp - B.CommitStamp) * 24 * 60, --Decimal Minutes
+	Lag_Min=CONVERT(FLOAT, Now - B.CommitStamp) * 24 * 60 --Decimal Minutes
 from A,B
