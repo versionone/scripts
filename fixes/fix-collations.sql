@@ -207,7 +207,9 @@ exec dbo._ForceBinaryCollation 'Subscription.AssetType'
 exec dbo._ForceBinaryCollation 'Subscription.EventDefinition'
 exec dbo._ForceBinaryCollation 'AssetAuditChangedByLast.AssetType'
 exec dbo._ForceBinaryCollation 'Story_Now.AssetType'
-exec dbo._ForceBinaryCollation 'AssetAudit.AssetType'
+if not OBJECT_ID('dbo.AssetAudit', 'U') is null
+	exec dbo._ForceBinaryCollation 'AssetAudit.AssetType'
+else
 exec dbo._ForceBinaryCollation 'Story.AssetType'
 exec dbo._ForceBinaryCollation 'Actual_Now.AssetType'
 exec dbo._ForceBinaryCollation 'State_Now.AssetType'

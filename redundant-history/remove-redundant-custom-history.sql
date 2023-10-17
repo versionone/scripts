@@ -52,8 +52,17 @@ end
 close C
 deallocate C
 
-exec dbo.AssetAudit_Rebuild
-DBCC DBREINDEX([AssetAudit])
+if not OBJECT_ID('dbo.AssetAudit', 'U') is null
+begin
+	exec dbo.AssetAudit_Rebuild
+	DBCC DBREINDEX([AssetAudit])
+end
+else
+begin
+	exec dbo.Asset_Rebuild
+	DBCC DBREINDEX([Asset])
+	DBCC DBREINDEX([Asset_Now])
+end
 
 --commit
 rollback
