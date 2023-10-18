@@ -25,15 +25,24 @@ if @error<>0 goto ERR
 print @rowcount + ' historical business rules deleted'
 
 if OBJECT_ID('dbo.AssetAudit', 'U') is not null
+begin
     delete AssetAudit where ID=-6293 and AssetType='BusinessRule'
+    select @rowcount=@@ROWCOUNT, @error=@@ERROR
+    if @error<>0 goto ERR
+end
 if OBJECT_ID('dbo.Asset_Now', 'U') is not null
+begin
     delete Asset_Now where ID=-6293 and AssetType='BusinessRule'
+    select @error=@@ERROR
+    if @error<>0 goto ERR
+end
 if OBJECT_ID('dbo.Asset', 'U') is not null
+begin
     delete Asset where ID=-6293 and AssetType='BusinessRule'
+    select @rowcount=@@ROWCOUNT, @error=@@ERROR
+    if @error<>0 goto ERR
 end
 
-select @rowcount=@@ROWCOUNT, @error=@@ERROR
-if @error<>0 goto ERR
 print @rowcount + ' AssetAudits deleted'
 
 

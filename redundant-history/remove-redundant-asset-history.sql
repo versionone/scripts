@@ -125,9 +125,9 @@ if 0 < (select sum([count]) from #rows) begin
 	raiserror('rebuilding AssetAudit', 0, 5) with nowait
 	select @countAssetAuditsBefore = count(*) from dbo.AssetAudit
 
-	if not OBJECT_ID('dbo.AssetAudit', 'U') is null
+	if OBJECT_ID('dbo.AssetAudit', 'U') is not null
 		exec dbo.AssetAudit_Rebuild
-	else
+	if OBJECT_ID('dbo.Asset', 'U') is not null
 		exec dbo.Asset_Rebuild
 
 	select @countAssetAuditsRemoved = @countAssetAuditsBefore - count(*) from dbo.AssetAudit
