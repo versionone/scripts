@@ -5,7 +5,7 @@
 ),
 A as (select top 1 * from dbo.Audit order by ID desc)
 select
-Ocurred = AuditStamp,
+Occurred = AuditStamp,
 Processed = CommitStamp,
 CycleTime_Min = CONVERT(FLOAT,CommitStamp - AuditStamp) * 24 * 60, --Decimal Minutes
 Behind_Min = CONVERT(FLOAT,A.ChangeDateUTC - AuditStamp) * 24 * 60, --Decimal Minutes
