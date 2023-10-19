@@ -52,12 +52,12 @@ end
 close C
 deallocate C
 
-if OBJECT_ID('dbo.AssetAudit', 'U') is not null
+if OBJECT_ID('dbo.AssetAudit_Rebuild', 'P') is not null
 begin
 	exec dbo.AssetAudit_Rebuild
 	DBCC DBREINDEX([AssetAudit])
 end
-if OBJECT_ID('dbo.Asset', 'U') is not null
+if OBJECT_ID('dbo.Asset_Rebuild', 'P') is not null
 begin
 	exec dbo.Asset_Rebuild
 	DBCC DBREINDEX([Asset])
