@@ -1,7 +1,7 @@
 ;with M as (
 	select Now=GETUTCDATE(), MaxSequence=cast(JSON_VALUE(Value, '$.MaxSequence') as int)
 	from Config 
-	where Instance='MetaStreamSubscription' and Type='CatchupSubscriptionManager'
+	where Instance='MatcherSubscription' and Type='CatchupSubscriptionManager'
 ),
 ActivityStreamCommits as (
 	select cast(CommitStamp as datetime) CommitStamp, CheckpointNumber, CommitSequence
