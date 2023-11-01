@@ -1471,10 +1471,12 @@ update Room set DefaultScopeID=null from @doomed where doomed=DefaultScopeID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Rooms purged', 0, 1, @rowcount) with nowait
 
-raiserror('AssetAudits', 0, 1) with nowait
-delete AssetAudit from @doomed where doomed=ID
+raiserror('Assets', 0, 1) with nowait
+delete Asset_Now from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-raiserror('%s AssetAudits purged', 0, 1, @rowcount) with nowait
+delete Asset from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s Assets purged', 0, 1, @rowcount) with nowait
 
 raiserror('AssetStrings', 0, 1) with nowait
 delete AssetString from @doomed where doomed=ID
