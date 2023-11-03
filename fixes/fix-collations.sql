@@ -209,7 +209,6 @@ exec dbo._ForceBinaryCollation 'AssetAuditChangedByLast.AssetType'
 exec dbo._ForceBinaryCollation 'Story_Now.AssetType'
 if OBJECT_ID('dbo.AssetAudit', 'U') is not null
 	exec dbo._ForceBinaryCollation 'AssetAudit.AssetType'
-else
 exec dbo._ForceBinaryCollation 'Story.AssetType'
 exec dbo._ForceBinaryCollation 'Actual_Now.AssetType'
 exec dbo._ForceBinaryCollation 'State_Now.AssetType'

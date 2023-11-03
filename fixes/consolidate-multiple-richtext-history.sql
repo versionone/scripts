@@ -104,7 +104,7 @@ declare @template2 varchar(max) = '
 
 	if @saveChanges = 1 begin
 		DBCC DBREINDEX([@table])
-		if not OBJECT_ID(''dbo.AssetAudit'', ''U'') is null
+		if OBJECT_ID(''dbo.AssetAudit_Rebuild'', ''P'') is not null
 		begin
 			exec dbo.AssetAudit_Rebuild
 			DBCC DBREINDEX([AssetAudit])
