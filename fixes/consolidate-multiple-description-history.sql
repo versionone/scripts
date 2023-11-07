@@ -112,8 +112,17 @@ raiserror('%d BaseAsset_Now records syncd', 0, 1, @rowcount) with nowait
 if @saveChanges=1 begin
 	DBCC DBREINDEX([BaseAsset])
 
-	exec dbo.AssetAudit_Rebuild
-	DBCC DBREINDEX([AssetAudit])
+	if OBJECT_ID('dbo.AssetAudit_Rebuild', 'P') is not null
+	begin
+		exec dbo.AssetAudit_Rebuild
+		DBCC DBREINDEX([AssetAudit])
+	end
+	if OBJECT_ID('dbo.Asset_Rebuild', 'P') is not null
+	begin
+		exec dbo.Asset_Rebuild
+		DBCC DBREINDEX([Asset])
+		DBCC DBREINDEX([Asset_Now])
+	end
 end
 
 FINISHED:
