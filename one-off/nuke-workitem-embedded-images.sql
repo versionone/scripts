@@ -140,7 +140,7 @@ begin
 		raiserror('%d hash referenced images removed from Blob table', 0, 1, @rowcount) with nowait
 
         update LongString
-	    set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'downloadblob.img/', '"', 'downloadblob.img/' + CONVERT(NVARCHAR(MAX), @blankimageHash, 2))
+	    set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'downloadblob.img/', '"', 'downloadblob.img/' + CONVERT(NVARCHAR(MAX), @blankimageHash, 2) + '"')
         where ID = @LongStringID
 
 		select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -154,7 +154,7 @@ begin
 	DEALLOCATE cRichTextFields
 
 	update LongString
-	set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'data:image', '"','data:image/png;base64,' + @blankImageBase64)
+	set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'data:image', '"','data:image/png;base64,' + @blankImageBase64 + '"')
 	from BaseAsset bs
 	left join CustomLongText clt on bs.ID = clt.ID
 	where bs.ID = @Id and bs.ID is not null
