@@ -21,64 +21,52 @@ return
 (
     with recursivecte as (
         select
-            charindex('<img', @richtextcol) as startpos,
-            charindex('>', @richtextcol, charindex('<img', @richtextcol)) as endpos,
-            1 as rownumber
-        where charindex('<img', @richtextcol) > 0
+            charindex('downloadblob.img/', @richtextcol) + len('downloadblob.img/') as startpos,
+            charindex('"', @richtextcol, charindex('downloadblob.img/', @richtextcol)) as endpos
+        where charindex('downloadblob.img/', @richtextcol) > 0
 
         union all
 
         select
-            charindex('<img', @richtextcol, endpos) as startpos,
-            charindex('>', @richtextcol, charindex('<img', @richtextcol, endpos)) as endpos,
-            rownumber + 1
+            charindex('downloadblob.img/', @richtextcol, endpos) + len('downloadblob.img/') as startpos,
+            charindex('"', @richtextcol, charindex('downloadblob.img/', @richtextcol, endpos)) as endpos
         from
             recursivecte
         where
-            charindex('<img', @richtextcol, endpos) > 0
+            charindex('downloadblob.img/', @richtextcol, endpos) > 0
     )
-    select
-        substring(
+	select distinct substring(
             @richtextcol,
             startpos,
-            endpos - startpos + 1
-        ) as imgelem,
-        convert(binary(20), '0x'+ substring(
-            @richtextcol,
-            charindex('downloadblob.img/', @richtextcol, startpos) + len('downloadblob.img/'),
-            charindex('"', @richtextcol, charindex('downloadblob.img/', @richtextcol, startpos) + len('downloadblob.img/')) - charindex('downloadblob.img/', @richtextcol, startpos) - len('downloadblob.img/')
-        ),1) as hash
-    from
+            endpos - startpos
+        ) as Hash
+	from
         recursivecte
     where
         charindex('downloadblob.img/', @richtextcol, startpos) > 0
 )
-
 GO
 
-
-create or alter function [dbo].[ReplaceBase64Images] (@RichTextCol varchar(max), @BlankBase64Image varchar(max))
+create or alter function dbo.ReplaceBetween(@rickText varchar(max), @startMarker varchar(200), @endMarker varchar(200), @replacement varchar(max))
 returns varchar(max)
 as
 begin
-    declare @StartIndex int = charindex('<img src="data:image/', @RichTextCol);
+    declare @StartIndex int = charindex(@startMarker, @rickText);
 
     while @StartIndex > 0
     begin
-        set @RichTextCol = stuff(
-            @RichTextCol,
+        set @rickText = stuff(
+            @rickText,
             @StartIndex,
-            charindex('">', substring(@RichTextCol, @StartIndex, len(@RichTextCol))) + 2,
-            @BlankBase64Image
+            charindex(@endMarker, substring(@rickText, @StartIndex, len(@rickText)))+LEN(@endMarker)-1,
+            @replacement
         );
-
-        set @StartIndex = charindex('<img src="data:image/', @RichTextCol, @StartIndex + len(@BlankBase64Image));
+        set @StartIndex = charindex(@startMarker, @rickText, @StartIndex + len(@replacement));
     end;
 
-    return @RichTextCol;
+    return @rickText;
 end;
 GO
-
 
 create or alter procedure dbo.NukeWorkitemEmbeddedImages
     @oid varchar(20),
@@ -100,12 +88,17 @@ begin
     end
 
     declare @blankimage varbinary(max) = 0x89504e470d0a1a0a0000000d4948445200000001000000010100000000376ef9240000001049444154789c626001000000ffff03000006000557bfabd40000000049454e44ae426082
+    declare @blankimageHash binary(20) = CONVERT([binary](20),hashbytes('SHA1',CONVERT(varbinary(max),@blankimage)))
 	declare @blankImageBase64 varchar(max) = CAST(N'' AS XML).value('xs:base64Binary(xs:hexBinary(sql:variable("@blankimage")))', 'VARCHAR(MAX)')
     declare @imgpng int
     
     begin tran; save tran TX
 
     exec dbo._SaveString N'img/png', @imgpng output
+
+    if not exists(select * from Blob where Hash = @blankimageHash)
+        insert into dbo.Blob(Hash, ContentType, Value)
+        values (@blankimageHash, @imgpng, @blankimage)
 
     update Blob 
     set Value = @blankimage, ContentType=@imgpng
@@ -136,16 +129,24 @@ begin
 
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
-		update Blob 
-		set Value = @blankimage, ContentType=@imgpng
+		delete
+        from Blob 
 		where Hash in (
-			SELECT Hash
-			FROM dbo.ExtractHashesFromUrls(@Value)
+            select Hash
+            from dbo.ExtractHashesFromUrls(@Value)
+            where Hash <> @blankimageHash
 		)
+
 		select @rowcount=@@ROWCOUNT, @error=@@ERROR
-		select @Value
 		if @error<>0 goto ERR
-		
+		raiserror('%d hash referenced images removed from Blob table %d', 0, 1, @rowcount, @LongStringID) with nowait
+
+        update LongString
+	    set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'downloadblob.img/', '"', 'downloadblob.img/' + CONVERT(NVARCHAR(MAX), @blankimageHash, 2))
+        where ID = @LongStringID
+
+		select @rowcount=@@ROWCOUNT, @error=@@ERROR
+		if @error<>0 goto ERR
 		raiserror('%d hash referenced images nuked for long string %d', 0, 1, @rowcount, @LongStringID) with nowait
 
 		FETCH NEXT FROM cRichTextFields INTO @LongStringID, @Value
@@ -155,12 +156,12 @@ begin
 	DEALLOCATE cRichTextFields
 
 	update LongString
-	set LongString.Value = dbo.ReplaceBase64Images(LongString.Value, @blankImageBase64)
+	set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'data:image', '"','data:image/png;base64,' + @blankImageBase64)
 	from BaseAsset bs
 	left join CustomLongText clt on bs.ID = clt.ID
 	where bs.ID = @Id and bs.ID is not null
 	and LongString.ID in (bs.Description, clt.Value)
-	and charindex(cast(LongString.Value as varchar(max)),'<img src="data:image/') > 0 
+	and charindex(cast(LongString.Value as varchar(max)),'data:image') > 0 
 
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
