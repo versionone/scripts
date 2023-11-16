@@ -35,15 +35,12 @@ return
         where
             charindex('downloadblob.img/', @richtextcol, endpos) > 0
     )
-	select distinct substring(
+	select distinct convert(binary(20), '0x'+ substring(
             @richtextcol,
             startpos,
             endpos - startpos
-        ) as Hash
-	from
-        recursivecte
-    where
-        charindex('downloadblob.img/', @richtextcol, startpos) > 0
+        ),1) as Hash
+	from recursivecte
 )
 GO
 
@@ -92,7 +89,7 @@ begin
 	declare @blankImageBase64 varchar(max) = CAST(N'' AS XML).value('xs:base64Binary(xs:hexBinary(sql:variable("@blankimage")))', 'VARCHAR(MAX)')
     declare @imgpng int
     
-    begin tran; save tran TX
+    set nocount on;begin tran; save tran TX
 
     exec dbo._SaveString N'img/png', @imgpng output
 
@@ -120,6 +117,7 @@ begin
 	left join CustomLongText clt on bs.ID = clt.ID
 	left join LongString ls on ls.ID in (bs.Description, clt.Value)
 	where bs.ID = @Id and ls.ID is not null
+    and ls.Value like '%downloadblob.img/%'
 
 	OPEN cRichTextFields;
 
@@ -139,7 +137,7 @@ begin
 
 		select @rowcount=@@ROWCOUNT, @error=@@ERROR
 		if @error<>0 goto ERR
-		raiserror('%d hash referenced images removed from Blob table %d', 0, 1, @rowcount, @LongStringID) with nowait
+		raiserror('%d hash referenced images removed from Blob table', 0, 1, @rowcount) with nowait
 
         update LongString
 	    set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'downloadblob.img/', '"', 'downloadblob.img/' + CONVERT(NVARCHAR(MAX), @blankimageHash, 2))
@@ -147,7 +145,7 @@ begin
 
 		select @rowcount=@@ROWCOUNT, @error=@@ERROR
 		if @error<>0 goto ERR
-		raiserror('%d hash referenced images nuked for long string %d', 0, 1, @rowcount, @LongStringID) with nowait
+		raiserror('%d hash referenced images nuked for LongString ID %d', 0, 1, @rowcount, @LongStringID) with nowait
 
 		FETCH NEXT FROM cRichTextFields INTO @LongStringID, @Value
 	END
@@ -161,7 +159,7 @@ begin
 	left join CustomLongText clt on bs.ID = clt.ID
 	where bs.ID = @Id and bs.ID is not null
 	and LongString.ID in (bs.Description, clt.Value)
-	and charindex(cast(LongString.Value as varchar(max)),'data:image') > 0 
+	and LongString.Value like '%data:image%'
 
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
