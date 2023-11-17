@@ -44,8 +44,8 @@ return
 )
 GO
 
-create or alter function dbo.ReplaceBetween(@richText varchar(max), @startMarker varchar(200), @endMarker varchar(200), @replacement varchar(max))
-returns varchar(max)
+create or alter function dbo.ReplaceBetween(@richText nvarchar(max), @startMarker nvarchar(200), @endMarker nvarchar(200), @replacement nvarchar(max))
+returns nvarchar(max)
 as
 begin
     declare @StartIndex int = charindex(@startMarker, @richText);
