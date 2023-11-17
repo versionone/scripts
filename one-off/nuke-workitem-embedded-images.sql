@@ -44,24 +44,24 @@ return
 )
 GO
 
-create or alter function dbo.ReplaceBetween(@rickText varchar(max), @startMarker varchar(200), @endMarker varchar(200), @replacement varchar(max))
+create or alter function dbo.ReplaceBetween(@richText varchar(max), @startMarker varchar(200), @endMarker varchar(200), @replacement varchar(max))
 returns varchar(max)
 as
 begin
-    declare @StartIndex int = charindex(@startMarker, @rickText);
+    declare @StartIndex int = charindex(@startMarker, @richText);
 
     while @StartIndex > 0
     begin
-        set @rickText = stuff(
-            @rickText,
+        set @richText = stuff(
+            @richText,
             @StartIndex,
-            charindex(@endMarker, substring(@rickText, @StartIndex, len(@rickText)))+LEN(@endMarker)-1,
+            charindex(@endMarker, substring(@richText, @StartIndex, len(@richText)))+LEN(@endMarker)-1,
             @replacement
         );
-        set @StartIndex = charindex(@startMarker, @rickText, @StartIndex + len(@replacement));
+        set @StartIndex = charindex(@startMarker, @richText, @StartIndex + len(@replacement));
     end;
 
-    return @rickText;
+    return @richText;
 end;
 GO
 
