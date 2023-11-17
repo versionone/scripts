@@ -84,32 +84,65 @@ begin
         return
     end
 
+    declare @blankimageID int
     declare @blankimage varbinary(max) = 0x89504e470d0a1a0a0000000d4948445200000001000000010100000000376ef9240000001049444154789c626001000000ffff03000006000557bfabd40000000049454e44ae426082
     declare @blankimageHash binary(20) = CONVERT([binary](20),hashbytes('SHA1',CONVERT(varbinary(max),@blankimage)))
 	declare @blankImageBase64 varchar(max) = CAST(N'' AS XML).value('xs:base64Binary(xs:hexBinary(sql:variable("@blankimage")))', 'VARCHAR(MAX)')
     declare @imgpng int
+    declare @blobsToRemove table (Content int)
     
     set nocount on;begin tran; save tran TX
 
     exec dbo._SaveString N'img/png', @imgpng output
 
-    if not exists(select * from dbo.Blob where Hash = @blankimageHash)
+    select @blankimageID = ID from Blob where Hash = @blankimageHash
+    if @blankimageID is null
+    begin
         insert into dbo.Blob(Hash, ContentType, Value)
         values (@blankimageHash, @imgpng, @blankimage)
+        set @blankimageID = @@identity
+    end
 
-    update dbo.Blob 
-    set Value = @blankimage, ContentType=@imgpng
-    where ID in (
-        select Content
-        from dbo.EmbeddedImage
+    insert into @blobsToRemove
+    select Content
+    from dbo.EmbeddedImage
+    where AssetID = @Id
+
+    alter table dbo.EmbeddedImage_Now disable trigger all
+
+        update dbo.EmbeddedImage_Now
+        set Content = @blankimageID, ContentType = @imgpng
         where AssetID = @Id
-    )
-    and cast(Value as varbinary(max)) <> @blankimage
+        and Content <> @blankimageID
+        and ContentType <> @imgpng
+
+        select @rowcount=@@ROWCOUNT, @error=@@ERROR
+        if @error<>0 goto ERR
+        raiserror('%d blanked images on dbo.EmbeddedImage_Now', 0, 1, @rowcount) with nowait
+
+    alter table dbo.EmbeddedImage_Now enable trigger all
+
+    update dbo.EmbeddedImage
+    set Content = @blankimageID, ContentType = @imgpng
+    where AssetID = @Id 
+    and Content <> @blankimageID
+    and ContentType <> @imgpng
 
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
-    raiserror('%d Embedded Images nuked', 0, 1, @rowcount) with nowait
+    raiserror('%d blanked images on dbo.EmbeddedImage', 0, 1, @rowcount) with nowait
 
+    delete
+    from Blob
+    where ID in (
+        select Content
+        from @blobsToRemove
+    )
+    and ID <> @blankimageID
+
+    select @rowcount=@@ROWCOUNT, @error=@@ERROR
+    if @error<>0 goto ERR
+    raiserror('%d deleted images on dbo.Blob table', 0, 1, @rowcount) with nowait
 
 	DECLARE cRichTextFields CURSOR FORWARD_ONLY FOR
 	select ls.ID, cast (ls.Value as nvarchar(max))
@@ -137,7 +170,7 @@ begin
 
 		select @rowcount=@@ROWCOUNT, @error=@@ERROR
 		if @error<>0 goto ERR
-		raiserror('%d hash referenced images removed from Blob table', 0, 1, @rowcount) with nowait
+		raiserror('%d hash referenced images removed from dbo.Blob table', 0, 1, @rowcount) with nowait
 
         update dbo.LongString
 	    set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'downloadblob.img/', '"', 'downloadblob.img/' + CONVERT(NVARCHAR(MAX), @blankimageHash, 2) + '"')
@@ -145,7 +178,7 @@ begin
 
 		select @rowcount=@@ROWCOUNT, @error=@@ERROR
 		if @error<>0 goto ERR
-		raiserror('%d hash referenced images nuked for LongString ID %d', 0, 1, @rowcount, @LongStringID) with nowait
+		raiserror('%d hash referenced images nuked for dbo.LongString ID %d', 0, 1, @rowcount, @LongStringID) with nowait
 
 		FETCH NEXT FROM cRichTextFields INTO @LongStringID, @Value
 	END
