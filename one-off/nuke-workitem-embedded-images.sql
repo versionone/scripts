@@ -114,7 +114,6 @@ begin
         set Content = @blankimageID, ContentType = @imgpng
         where AssetID = @Id
         and Content <> @blankimageID
-        and ContentType <> @imgpng
 
         select @rowcount=@@ROWCOUNT, @error=@@ERROR
         if @error<>0 goto ERR
@@ -126,7 +125,6 @@ begin
     set Content = @blankimageID, ContentType = @imgpng
     where AssetID = @Id 
     and Content <> @blankimageID
-    and ContentType <> @imgpng
 
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
 	if @error<>0 goto ERR
