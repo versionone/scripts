@@ -108,22 +108,18 @@ begin
     from dbo.EmbeddedImage
     where AssetID = @Id
 
-    alter table dbo.EmbeddedImage_Now disable trigger all
+    update dbo.EmbeddedImage_Now
+    set Content = @blankimageID, ContentType = @imgpng
+    where AssetID = @Id
+    and Content <> @blankimageID
 
-        update dbo.EmbeddedImage_Now
-        set Content = @blankimageID, ContentType = @imgpng
-        where AssetID = @Id
-        and Content <> @blankimageID
-
-        select @rowcount=@@ROWCOUNT, @error=@@ERROR
-        if @error<>0 goto ERR
-        raiserror('%d blanked images on dbo.EmbeddedImage_Now', 0, 1, @rowcount) with nowait
-
-    alter table dbo.EmbeddedImage_Now enable trigger all
+    select @rowcount=@@ROWCOUNT, @error=@@ERROR
+    if @error<>0 goto ERR
+    raiserror('%d blanked images on dbo.EmbeddedImage_Now', 0, 1, @rowcount) with nowait
 
     update dbo.EmbeddedImage
     set Content = @blankimageID, ContentType = @imgpng
-    where AssetID = @Id 
+    where AssetID = @Id and not AuditEnd is null
     and Content <> @blankimageID
 
 	select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -142,13 +138,19 @@ begin
     if @error<>0 goto ERR
     raiserror('%d deleted images on dbo.Blob table', 0, 1, @rowcount) with nowait
 
-	DECLARE cRichTextFields CURSOR FORWARD_ONLY FOR
+	declare @tblRichTextFields table(LongStringID int, Value nvarchar(max))
+	insert into @tblRichTextFields 
 	select ls.ID, cast (ls.Value as nvarchar(max))
 	from dbo.BaseAsset bs
 	left join dbo.CustomLongText clt on bs.ID = clt.ID
 	left join dbo.LongString ls on ls.ID in (bs.Description, clt.Value)
 	where bs.ID = @Id and ls.ID is not null
     and ls.Value like '%downloadblob.img/%'
+
+	
+	DECLARE cRichTextFields CURSOR FORWARD_ONLY FOR
+	select LongStringID, Value
+	from @tblRichTextFields
 
 	OPEN cRichTextFields;
 
@@ -202,3 +204,5 @@ begin
 	ERR: rollback tran TX
 	OK: commit
 end
+
+GO
