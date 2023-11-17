@@ -75,7 +75,7 @@ begin
 	declare @error int, @rowcount int
 
     select @Id = ba.ID, @assetType = ba.AssetType
-    from BaseAsset_Now ba
+    from dbo.BaseAsset_Now ba
 	join dbo.OidSplit(@oid) oid on ba.ID = oid.ID and ba.AssetType = oid.AssetType
 
     if (@@rowcount <> 1)
@@ -93,11 +93,11 @@ begin
 
     exec dbo._SaveString N'img/png', @imgpng output
 
-    if not exists(select * from Blob where Hash = @blankimageHash)
+    if not exists(select * from dbo.Blob where Hash = @blankimageHash)
         insert into dbo.Blob(Hash, ContentType, Value)
         values (@blankimageHash, @imgpng, @blankimage)
 
-    update Blob 
+    update dbo.Blob 
     set Value = @blankimage, ContentType=@imgpng
     where ID in (
         select Content
@@ -113,9 +113,9 @@ begin
 
 	DECLARE cRichTextFields CURSOR FORWARD_ONLY FOR
 	select ls.ID, cast (ls.Value as nvarchar(max))
-	from BaseAsset bs
-	left join CustomLongText clt on bs.ID = clt.ID
-	left join LongString ls on ls.ID in (bs.Description, clt.Value)
+	from dbo.BaseAsset bs
+	left join dbo.CustomLongText clt on bs.ID = clt.ID
+	left join dbo.LongString ls on ls.ID in (bs.Description, clt.Value)
 	where bs.ID = @Id and ls.ID is not null
     and ls.Value like '%downloadblob.img/%'
 
@@ -128,7 +128,7 @@ begin
 	WHILE @@FETCH_STATUS = 0
 	BEGIN
 		delete
-        from Blob 
+        from dbo.Blob 
 		where Hash in (
             select Hash
             from dbo.ExtractHashesFromUrls(@Value)
@@ -139,7 +139,7 @@ begin
 		if @error<>0 goto ERR
 		raiserror('%d hash referenced images removed from Blob table', 0, 1, @rowcount) with nowait
 
-        update LongString
+        update dbo.LongString
 	    set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'downloadblob.img/', '"', 'downloadblob.img/' + CONVERT(NVARCHAR(MAX), @blankimageHash, 2) + '"')
         where ID = @LongStringID
 
@@ -153,10 +153,10 @@ begin
 	CLOSE cRichTextFields;
 	DEALLOCATE cRichTextFields
 
-	update LongString
+	update dbo.LongString
 	set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'data:image', '"','data:image/png;base64,' + @blankImageBase64 + '"')
-	from BaseAsset bs
-	left join CustomLongText clt on bs.ID = clt.ID
+	from dbo.BaseAsset bs
+	left join dbo.CustomLongText clt on bs.ID = clt.ID
 	where bs.ID = @Id and bs.ID is not null
 	and LongString.ID in (bs.Description, clt.Value)
 	and LongString.Value like '%data:image%'
