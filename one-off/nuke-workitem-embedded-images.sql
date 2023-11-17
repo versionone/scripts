@@ -95,7 +95,7 @@ begin
 
     exec dbo._SaveString N'img/png', @imgpng output
 
-    select @blankimageID = ID from Blob where Hash = @blankimageHash
+    select @blankimageID = ID from dbo.Blob where Hash = @blankimageHash
     if @blankimageID is null
     begin
         insert into dbo.Blob(Hash, ContentType, Value)
@@ -133,7 +133,7 @@ begin
     raiserror('%d blanked images on dbo.EmbeddedImage', 0, 1, @rowcount) with nowait
 
     delete
-    from Blob
+    from dbo.Blob
     where ID in (
         select Content
         from @blobsToRemove
