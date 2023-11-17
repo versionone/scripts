@@ -157,7 +157,7 @@ begin
 	set LongString.Value = dbo.ReplaceBetween (LongString.Value, 'data:image', '"','data:image/png;base64,' + @blankImageBase64 + '"')
 	from dbo.BaseAsset bs
 	left join dbo.CustomLongText clt on bs.ID = clt.ID
-	where bs.ID = @Id and bs.ID is not null
+	where bs.ID = @Id
 	and LongString.ID in (bs.Description, clt.Value)
 	and LongString.Value like '%data:image%'
 
