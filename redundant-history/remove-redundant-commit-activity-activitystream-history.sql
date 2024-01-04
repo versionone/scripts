@@ -29,8 +29,7 @@ set nocount on; begin tran; save tran TX
 declare @Commits table(CommitId char(36) collate Latin1_General_BIN2 not null)
 INSERT INTO @Commits SELECT CommitId FROM Commits
 	WHERE
-	BucketId='Meta'
-	AND cast(Payload as varchar(max)) LIKE '%"EventType":"Changed"%'
+	cast(Payload as varchar(max)) LIKE '%"EventType":"Changed"%'
 	AND cast(Payload as varchar(max)) LIKE '%"Changes":\[]%' ESCAPE '\';
 
 DELETE FROM Commits WHERE CommitId IN (SELECT CommitId FROM @Commits)
