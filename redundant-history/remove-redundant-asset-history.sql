@@ -101,7 +101,7 @@ from (
 			'AssetType', 'AttributeDefinition', 'BaseRule', 'BaseSyntheticAttributeDefinition', 'DefaultRule', 'EventDefinition', 'ExecuteSecurityCheckAttributeDefinition', 'InsertUpdateRule', 'ManyToManyRelationDefinition', 'Operation', 'Override', 'RelationDefinition', 
 			
 			-- Skip "system" assets
-			'Role', 'State'
+			'Asset', 'Role', 'State'
 		)
 )_
 
