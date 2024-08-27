@@ -7,7 +7,7 @@ if (select count(*) from dbo.[Counter])=8000
 begin
 	begin tran; save tran TX
 	insert into dbo.Counter (Value)
-	select Value + 8000 from .dbo.Counter;
+	select Value + 8000 from dbo.Counter;
 
 	if @@ERROR<>0 goto ERR
 
