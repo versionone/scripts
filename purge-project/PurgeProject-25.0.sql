@@ -182,6 +182,23 @@ insert @safeTeams
 select distinct TeamID from Retrospective_Now where ID not in (select doomed from @doomed) and TeamID is not null
 except select safeTeam from @safeTeams
 
+-- doom RetrospectivePrompt that live in doomed Retrospectives
+insert @doomed
+select ID from RetrospectivePrompt_Now join @doomed on doomed=DefinedInID
+
+-- doom RetrospectiveTopic that live in doomed Retrospectives
+insert @doomed
+select ID from RetrospectiveTopic_Now join @doomed on doomed=BelongsToID
+
+-- doom RetrospectiveTopic that live in doomed RetrospectivePrompts
+insert @doomed
+select ID from RetrospectiveTopic_Now join @doomed on doomed=ElicitedByID
+
+-- current authors of safe RetrospectiveTopic are safe
+insert @safeMembers
+select distinct AuthorID from RetrospectiveTopic_Now where ID not in (select doomed from @doomed)
+except select safeMember from @safeMembers
+
 -- doom RegressionTests belonging to doomed Scopes
 insert @doomed
 select ID from RegressionTest_Now join @doomed on doomed=ScopeID
@@ -890,6 +907,10 @@ select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Goals purged', 0, 1, @rowcount) with nowait
 
 raiserror('Retrospectives', 0, 1) with nowait
+delete RetrospectiveTopic_Now from @doomed where doomed=ElicitedByID or doomed=BelongsToID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete RetrospectivePrompt_Now from @doomed where doomed=DefinedInID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete RetrospectiveIssues from @doomed where doomed=RetrospectiveID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete Retrospective_Now from @doomed where doomed=ID
@@ -899,6 +920,10 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update Retrospective_Now set TimeboxID=null from @doomed where doomed=TimeboxID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Retrospective_Now set TeamID=null from @doomed where doomed=TeamID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete RetrospectiveTopic from @doomed where doomed=ElicitedByID or doomed=BelongsToID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete RetrospectivePrompt from @doomed where doomed=DefinedInID
 select @error=@@ERROR; if @error<>0 goto ERR
 delete Retrospective from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
