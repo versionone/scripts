@@ -109,8 +109,6 @@ print @rowcount + ' Login records scrambled (Username and ProfileKey)'
 
 drop table #loginMapping
 
-select * from dbo.Login
-
 if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA='dbo' and ROUTINE_NAME='Thumbprint' and ROUTINE_TYPE='FUNCTION') begin
 	print 'drop function dbo.Thumbprint'
 	drop function dbo.Thumbprint
