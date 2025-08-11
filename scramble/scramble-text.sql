@@ -80,6 +80,35 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' blobs truncated'
 
+-- Create temp table
+create table #loginMapping (OriginalUsername nvarchar(255) not null primary key, NewUsername nvarchar(255) not null unique)
+
+insert #loginMapping (OriginalUsername, NewUsername)
+select Username, cast(NEWID() as varchar(100))
+from dbo.Login
+if @@ERROR<>0 goto ERR
+
+-- Update ProfileName records that match Login usernames with unique new random usernames
+update dbo.ProfileName 
+set Name = lm.NewUsername
+from dbo.ProfileName pn
+inner join #loginMapping lm on pn.Name COLLATE database_default = lm.OriginalUsername COLLATE database_default
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+print @rowcount + ' ProfileName records updated to match Login usernames'
+
+-- Update Login usernames and ProfileKey with the new random usernames
+update dbo.Login 
+set Username = lm.NewUsername,
+	ProfileKey = CASE WHEN l.ProfileKey = l.Username THEN lm.NewUsername ELSE l.ProfileKey END
+from dbo.Login l
+inner join #loginMapping lm on l.Username COLLATE database_default = lm.OriginalUsername COLLATE database_default
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+print @rowcount + ' Login records scrambled (Username and ProfileKey)'
+
+drop table #loginMapping
+
 if exists (select * from INFORMATION_SCHEMA.ROUTINES where ROUTINE_SCHEMA='dbo' and ROUTINE_NAME='Thumbprint' and ROUTINE_TYPE='FUNCTION') begin
 	print 'drop function dbo.Thumbprint'
 	drop function dbo.Thumbprint
