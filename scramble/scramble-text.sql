@@ -84,13 +84,13 @@ print @rowcount + ' blobs truncated'
 create table #loginMapping (OriginalUsername nvarchar(255) not null primary key, NewUsername nvarchar(255) not null unique)
 
 insert #loginMapping (OriginalUsername, NewUsername)
-select Username, 'Random Username ' + cast(NEWID() as varchar(100))
+select Username, cast(NEWID() as varchar(100))
 from dbo.Login
 if @@ERROR<>0 goto ERR
 
 -- Update ProfileName records that match Login usernames with unique new random usernames
 update dbo.ProfileName 
-set Name = 'Random ProfileName ' + cast(NEWID() as varchar(100))
+set Name = lm.NewUsername
 from dbo.ProfileName pn
 inner join #loginMapping lm on pn.Name COLLATE database_default = lm.OriginalUsername COLLATE database_default
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -100,7 +100,7 @@ print @rowcount + ' ProfileName records updated to match Login usernames'
 -- Update Login usernames and ProfileKey with the new random usernames
 update dbo.Login 
 set Username = lm.NewUsername,
-    ProfileKey = lm.NewUsername
+	ProfileKey = CASE WHEN l.ProfileKey = l.Username THEN lm.NewUsername ELSE l.ProfileKey END
 from dbo.Login l
 inner join #loginMapping lm on l.Username COLLATE database_default = lm.OriginalUsername COLLATE database_default
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
