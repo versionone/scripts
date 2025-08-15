@@ -92,7 +92,7 @@ if @@ERROR<>0 goto ERR
 update dbo.ProfileName 
 set Name = lm.NewUsername
 from dbo.ProfileName pn
-inner join #loginMapping lm on pn.Name COLLATE database_default = lm.OriginalUsername COLLATE database_default
+inner join #loginMapping lm on pn.Name COLLATE SQL_Latin1_General_CP1_CI_AS = lm.OriginalUsername COLLATE SQL_Latin1_General_CP1_CI_AS
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' ProfileName records updated to match Login usernames'
@@ -100,9 +100,9 @@ print @rowcount + ' ProfileName records updated to match Login usernames'
 -- Update Login usernames and ProfileKey with the new random usernames
 update dbo.Login 
 set Username = lm.NewUsername,
-	ProfileKey = CASE WHEN l.ProfileKey = l.Username THEN lm.NewUsername ELSE l.ProfileKey END
+	ProfileKey = CASE WHEN l.ProfileKey COLLATE SQL_Latin1_General_CP1_CI_AS = l.Username COLLATE SQL_Latin1_General_CP1_CI_AS THEN lm.NewUsername ELSE l.ProfileKey END
 from dbo.Login l
-inner join #loginMapping lm on l.Username COLLATE database_default = lm.OriginalUsername COLLATE database_default
+inner join #loginMapping lm on l.Username COLLATE SQL_Latin1_General_CP1_CI_AS = lm.OriginalUsername COLLATE SQL_Latin1_General_CP1_CI_AS
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 print @rowcount + ' Login records scrambled (Username and ProfileKey)'
