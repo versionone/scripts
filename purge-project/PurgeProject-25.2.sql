@@ -1134,6 +1134,8 @@ update Epic_Now set PriorityID=null from @doomed where doomed=PriorityID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Epic_Now set MorphedFromID=null from @doomed where doomed=MorphedFromID
 select @error=@@ERROR; if @error<>0 goto ERR
+update Epic_Now set PlannedReleaseID=null from @doomed where doomed=PlannedReleaseID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete Epic from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Epic set CategoryID=null from @doomed where doomed=CategoryID
@@ -1143,6 +1145,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update Epic set PriorityID=null from @doomed where doomed=PriorityID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Epic set MorphedFromID=null from @doomed where doomed=MorphedFromID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Epic set PlannedReleaseID=null from @doomed where doomed=PlannedReleaseID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Epics purged', 0, 1, @rowcount) with nowait
 
@@ -1235,6 +1239,8 @@ update Workitem_Now set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Workitem_Now set TimeboxID=null from @doomed where doomed=TimeboxID
 select @error=@@ERROR; if @error<>0 goto ERR
+update Workitem_Now set ReleaseID=null from @doomed where doomed=ReleaseID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete Workitem from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Workitem set ParentID=null from @doomed where doomed=ParentID
@@ -1244,6 +1250,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update Workitem set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Workitem set TimeboxID=null from @doomed where doomed=TimeboxID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Workitem set ReleaseID=null from @doomed where doomed=ReleaseID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Workitems purged', 0, 1, @rowcount) with nowait
 
