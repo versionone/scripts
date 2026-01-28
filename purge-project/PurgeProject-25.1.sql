@@ -408,12 +408,11 @@ select PlannedReleaseID from Epic where ID not in (select doomed from @doomed)
 except
 select ReleaseID from PrimaryWorkitem where ID not in (select doomed from @doomed)
 
--- doom ValueStreams of doomed Releases
--- except ValueStreams of safe Releases
+-- doom ValueStreams ever used by doomed Releases, except those ever used by safe Releases
 insert @doomed
-select distinct ValueStreamID from Release_Now join @doomed on doomed=ID
+select distinct ValueStreamID from Release join @doomed on doomed=ID
 except
-select distinct ValueStreamID from Release_Now where ID not in (select doomed from @doomed)
+select ValueStreamID from Release where ID not in (select doomed from @doomed)
 
 -- Releases of safe ValuesStreams are safe
 delete @doomed
