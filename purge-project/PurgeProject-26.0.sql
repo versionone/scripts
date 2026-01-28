@@ -404,9 +404,9 @@ select PlannedReleaseID from Epic_Now join @doomed on doomed=ID where PlannedRel
 union
 select ReleaseID from PrimaryWorkitem_Now join @doomed on doomed=ID where ReleaseID is not null
 except
-(select PlannedReleaseID from Epic where ID not in (select doomed from @doomed)
-union
-select ReleaseID from PrimaryWorkitem where ID not in (select doomed from @doomed))
+select PlannedReleaseID from Epic where ID not in (select doomed from @doomed)
+except
+select ReleaseID from PrimaryWorkitem where ID not in (select doomed from @doomed)
 
 -- doom ValueStreams of doomed Releases
 -- except ValueStreams of safe Releases
