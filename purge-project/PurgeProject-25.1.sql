@@ -397,6 +397,29 @@ select ID from StrategicTheme_Now join @doomed on doomed=ScopeID
 insert @doomed
 select ID from Milestone_Now join @doomed on doomed=ScopeID
 
+-- doom Releases of doomed Epics and PrimaryWorkitems
+-- except current/past Releases of safe Epics and PrimaryWorkitems
+insert @doomed
+select PlannedReleaseID from Epic_Now join @doomed on doomed=ID where PlannedReleaseID is not null
+union
+select ReleaseID from PrimaryWorkitem_Now join @doomed on doomed=ID where ReleaseID is not null
+except
+(select PlannedReleaseID from Epic where ID not in (select doomed from @doomed)
+union
+select ReleaseID from PrimaryWorkitem where ID not in (select doomed from @doomed))
+
+-- doom ValueStreams of doomed Releases
+-- except ValueStreams of safe Releases
+insert @doomed
+select distinct ValueStreamID from Release_Now join @doomed on doomed=ID
+except
+select distinct ValueStreamID from Release_Now where ID not in (select doomed from @doomed)
+
+-- Releases of safe ValuesStreams are safe
+delete @doomed
+from Release_Now join @doomed on doomed=ID
+where ValueStreamID not in (select doomed from @doomed)
+
 -- doom BaseAssets that are secured by doomed Scopes
 -- NOTE: This should always be done after all other BaseAsset types, in case other secured items are added by more specific inserts
 -- BUT before any non-BaseAsset that is doomed by a relation to BaseAsset
@@ -495,30 +518,6 @@ select ID from Timesheet_Now join @doomed on doomed=MemberID
 -- doom SavedViews owned by doomed Members or pegged to doomed Scopes
 insert @doomed
 select ID from SavedView_Now join @doomed on doomed=OwnerID or doomed=ScopeID
-
--- doom Releases of doomed Epics and PrimaryWorkitems
--- except current/past Releases of safe Epics and PrimaryWorkitems
-insert @doomed
-select distinct PlannedReleaseID from Epic_Now join @doomed on doomed=ID where PlannedReleaseID is not null
-union
-select distinct ReleaseID from PrimaryWorkitem_Now join @doomed on doomed=ID where ReleaseID is not null
-except
-(select distinct PlannedReleaseID from Epic where ID not in (select doomed from @doomed) and PlannedReleaseID is not null
-union
-select distinct ReleaseID from PrimaryWorkitem where ID not in (select doomed from @doomed) and ReleaseID is not null)
-
--- doom ValueStreams of doomed Releases
--- except ValueStreams of safe Releases
-insert @doomed
-select distinct ValueStreamID from Release_Now join @doomed on doomed=ID where ValueStreamID is not null
-except
-select distinct ValueStreamID from Release_Now where ID not in (select doomed from @doomed) and ValueStreamID is not null
-
--- Releases of safe ValuesStreams are safe
-delete @doomed
-from Release_Now join @doomed on doomed=ID
-where ValueStreamID is not null
-and ValueStreamID not in (select doomed from @doomed)
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
