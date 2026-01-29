@@ -397,6 +397,28 @@ select ID from StrategicTheme_Now join @doomed on doomed=ScopeID
 insert @doomed
 select ID from Milestone_Now join @doomed on doomed=ScopeID
 
+-- doom Releases of doomed Epics and PrimaryWorkitems
+-- except current/past Releases of safe Epics and PrimaryWorkitems
+insert @doomed
+select PlannedReleaseID from Epic_Now join @doomed on doomed=ID where PlannedReleaseID is not null
+union
+select ReleaseID from PrimaryWorkitem_Now join @doomed on doomed=ID where ReleaseID is not null
+except
+select PlannedReleaseID from Epic where ID not in (select doomed from @doomed)
+except
+select ReleaseID from PrimaryWorkitem where ID not in (select doomed from @doomed)
+
+-- doom ValueStreams ever used by doomed Releases, except those ever used by safe Releases
+insert @doomed
+select distinct ValueStreamID from Release join @doomed on doomed=ID
+except
+select ValueStreamID from Release where ID not in (select doomed from @doomed)
+
+-- Releases of safe ValuesStreams are safe
+delete @doomed
+from Release_Now join @doomed on doomed=ID
+where ValueStreamID not in (select doomed from @doomed)
+
 -- doom BaseAssets that are secured by doomed Scopes
 -- NOTE: This should always be done after all other BaseAsset types, in case other secured items are added by more specific inserts
 -- BUT before any non-BaseAsset that is doomed by a relation to BaseAsset
@@ -1179,6 +1201,8 @@ update PrimaryWorkitem_Now set ClassOfServiceID=null from @doomed where doomed=C
 select @error=@@ERROR; if @error<>0 goto ERR
 update PrimaryWorkitem_Now set DeliveryCategoryID=null from @doomed where doomed=DeliveryCategoryID
 select @error=@@ERROR; if @error<>0 goto ERR
+update PrimaryWorkitem_Now set ReleaseID=null from @doomed where doomed=ReleaseID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete PrimaryWorkitem from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update PrimaryWorkitem set StatusID=null from @doomed where doomed=StatusID
@@ -1190,6 +1214,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update PrimaryWorkitem set ClassOfServiceID=null from @doomed where doomed=ClassOfServiceID
 select @error=@@ERROR; if @error<>0 goto ERR
 update PrimaryWorkitem set DeliveryCategoryID=null from @doomed where doomed=DeliveryCategoryID
+select @error=@@ERROR; if @error<>0 goto ERR
+update PrimaryWorkitem set ReleaseID=null from @doomed where doomed=ReleaseID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s PrimaryWorkitems purged', 0, 1, @rowcount) with nowait
 
@@ -1239,8 +1265,6 @@ update Workitem_Now set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Workitem_Now set TimeboxID=null from @doomed where doomed=TimeboxID
 select @error=@@ERROR; if @error<>0 goto ERR
-update Workitem_Now set ReleaseID=null from @doomed where doomed=ReleaseID
-select @error=@@ERROR; if @error<>0 goto ERR
 delete Workitem from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Workitem set ParentID=null from @doomed where doomed=ParentID
@@ -1251,9 +1275,14 @@ update Workitem set TeamID=null from @doomed where doomed=TeamID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Workitem set TimeboxID=null from @doomed where doomed=TimeboxID
 select @error=@@ERROR; if @error<>0 goto ERR
-update Workitem set ReleaseID=null from @doomed where doomed=ReleaseID
-select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Workitems purged', 0, 1, @rowcount) with nowait
+
+raiserror('Releases', 0, 1) with nowait
+delete Release_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete Release from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s Releases purged', 0, 1, @rowcount) with nowait
 
 raiserror('Timeboxes', 0, 1) with nowait
 delete Timebox_Now from @doomed where doomed=ID
