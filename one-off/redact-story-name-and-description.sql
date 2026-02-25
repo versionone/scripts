@@ -11,12 +11,15 @@ end
 raiserror('Found Story:%d', 0, 1, @storyId) with nowait
 
 declare @storyOid varchar(max)='Story:'+cast(@storyId as varchar(max))+':%'
+declare @redacted nvarchar(max)=N'redacted'
+declare @hash int=BINARY_CHECKSUM(@redacted)
+declare @longHash binary(20)=cast(hashbytes('SHA2_512', @redacted) as binary(20))
 
 set nocount on; begin tran; save tran tx
 declare @error int, @rowcount int
 
 update dbo.String
-set Value=N'redacted'
+set Value=@redacted, Hash=@hash
 from dbo.BaseAsset
 where String.ID=Name and BaseAsset.ID=storyId
 
@@ -25,7 +28,7 @@ if @error<>0 goto ERR
 raiserror('%d Names redacted', 0, 1, @rowcount) with nowait
 
 update dbo.LongString
-set Value = N'redacted'
+set Value=@redacted, Hash=@longHash
 from dbo.BaseAsset
 where LongString.ID=Description and BaseAsset.ID=@storyId
 
