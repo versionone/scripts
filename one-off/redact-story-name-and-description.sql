@@ -1,5 +1,18 @@
-declare @saveChanges bit; -- set @saveChanges=1
+/*
+ *	Redact the name and description of a story,
+ *	along with any commits or webhook events that contain the name or description in their payload.
+ *
+ * INSTRUCTIONS:
+ * 1. Set @storyNumber to the Story number to redact
+ * 2. Review the messages printed by the script to verify that it is updating the expected records
+ * 3. Set @saveChanges=1
+ * 4. Rerun the script to commit the changes
+ *
+ *	NOTE:  This script defaults to rolling back changes.
+ *		To commit changes, set @saveChanges = 1.
+ */
 declare @storyNumber int=NNNNN
+declare @saveChanges bit; --set @saveChanges = 1
 
 declare @storyId int
 select @storyId=ID from dbo.Workitem_Now where AssetType='Story' and Number=@storyNumber
