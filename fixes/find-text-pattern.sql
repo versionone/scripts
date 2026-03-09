@@ -3,23 +3,26 @@
  *
  * INSTRUCTIONS:
  *
- * 1. Set the patterns in #SearchPattern (below)
+ * 1. Edit the patterns immediately below.
  *     You may define as many patterns as necessary.
  *     A record will be flagged if it matches at least one pattern.
  *
- * 2. Run the script
+ * 2. Run the script.
  *     The number of flagged records in each table will be printed.
  *     No changes to the database are made.
  */
 
-create table #SearchPattern (Pattern nvarchar(max) not null)
-insert into #SearchPattern (Pattern) values
-	--------------------------------------------------
-	-- Edit the patterns here. Each row is a wildcard pattern to search for.
-	--------------------------------------------------
-	(N'%Pattern 1%'),
-	(N'%Pattern 2%')
-	--------------------------------------------------
+create table #SearchPattern (Pattern nvarchar(max) not null); insert into #SearchPattern (Pattern) values
+
+--------------------------------------------------
+--------------------------------------------------
+-- Edit these patterns. Each row is a wildcard pattern to search for.
+(N'%Pattern 1%'),
+(N'%Pattern 2%')
+-- no comma after the last pattern ^
+--------------------------------------------------
+--------------------------------------------------
+
 GO
 
 create proc #Search(
@@ -30,17 +33,21 @@ begin
 
 declare @sql nvarchar(max), @rowcount int
 
-;with X as (select
+;with TY as (select
+	user_type_id, 
+	IsText = case when name in (N'char', N'varchar', N'nchar', N'nvarchar', N'text', N'ntext')
+		then 1 else 0 end
+	from sys.types
+),
+X as (select
 	TableName = quotename(t.name),
-	Value =  case when ty.name in (N'char', N'varchar', N'nchar', N'nvarchar', N'text', N'ntext')
-		then quotename(c.name)
+	Value = case IsText when 1 then quotename(c.name)
 		else 'cast(' + quotename(c.name) + ' as varchar(max))' end,
-	Collation = case when ty.name in (N'char', N'varchar', N'nchar', N'nvarchar', N'text', N'ntext')
-		then 'Latin1_General_100_CI_AS'
+	Collation = case IsText when 1 then 'Latin1_General_100_CI_AS'
 		else 'Latin1_General_100_CI_AS_SC_UTF8' end
 	from sys.tables t
 	join sys.columns c on c.object_id=t.object_id
-	join sys.types ty on ty.user_type_id=c.user_type_id
+	join TY ty on ty.user_type_id=c.user_type_id
 	where t.schema_id = SCHEMA_ID('dbo') and t.name=@table and c.name=@column
 )
 select @sql = N'
@@ -53,7 +60,7 @@ from X
 
 --print @sql
 exec sp_executesql @sql, N'@rowcount int output', @rowcount output
-raiserror('  %8d %s.%s', 0, 1, @rowcount, @table, @column) with nowait
+raiserror('  %8d %s %s', 0, 1, @rowcount, @table, @column) with nowait
 
 end
 GO
