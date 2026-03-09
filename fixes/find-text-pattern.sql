@@ -25,6 +25,13 @@ create table #SearchPattern (Pattern nvarchar(max) not null); insert into #Searc
 
 GO
 
+create table #Flagged(
+	[Table] sysname not null,
+	[Column] sysname not null,
+	Records int null
+)
+GO
+
 create proc #Search(
 	@table sysname,
 	@column sysname
@@ -60,7 +67,11 @@ from X
 
 --print @sql
 exec sp_executesql @sql, N'@rowcount int output', @rowcount output
-raiserror('  %8d %s %s', 0, 1, @rowcount, @table, @column) with nowait
+
+insert #Flagged([Table], [Column], Records)
+values (@table, @column, @rowcount)
+
+raiserror('  %20s %-11s %5d', 0, 1, @table, @column, @rowcount) with nowait
 
 end
 GO
@@ -83,6 +94,9 @@ exec #Search 'PublishedPayload', 'Value'
 exec #Search 'PublishedPayload', 'Description'
 exec #Search 'Snapshots', 'Payload'
 
+select * from #Flagged
+
 GO
 drop proc #Search
+drop table #Flagged
 drop table #SearchPattern
