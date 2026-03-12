@@ -34,7 +34,7 @@ declare @error int, @rowcount int
 update dbo.String
 set Value=@redacted, Hash=@hash
 from dbo.BaseAsset
-where String.ID=Name and BaseAsset.ID=storyId
+where String.ID=Name and BaseAsset.ID=@storyId
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
@@ -73,3 +73,4 @@ if @saveChanges=1 goto OK
 raiserror('Rolling back changes.  To commit changes, set @saveChanges=1', 16, 1)
 ERR: rollback tran tx
 OK: commit
+
