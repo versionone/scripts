@@ -1550,6 +1550,16 @@ delete AssetLongString from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s AssetLongStrings purged', 0, 1, @rowcount) with nowait
 
+raiserror('OkrAssociatedAssets', 0, 1) with nowait
+delete OkrAssociatedAsset from @doomed where doomed=BaseAssetID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s OkrAssociatedAssets purged', 0, 1, @rowcount) with nowait
+
+raiserror('OkrObjectiveSharedAccessWith', 0, 1) with nowait
+delete OkrObjectiveSharedAccessWith from @doomed where doomed=MemberID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s OkrObjectiveSharedAccessWith purged', 0, 1, @rowcount) with nowait
+
 raiserror('Rebuilding EffectiveACLs', 0, 1) with nowait
 insert dbo.EffectiveACL
 select ScopeID, MemberID, RoleID, RightsMask = RightsMask | case when Owner<>0 then cast(0x200000000 as bigint) else 0 end
