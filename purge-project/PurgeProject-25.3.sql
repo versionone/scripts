@@ -343,6 +343,20 @@ insert @doomed
 select distinct MemberID from ScopeMemberACL join @doomed on doomed=ScopeID where RoleID<>0 or Owner<>0
 except select safeMember from @safeMembers
 
+-- doom OkrObjectives owned by doomed Members
+insert @doomed
+select ID from OkrObjective_Now join @doomed on doomed=OwnerID
+
+-- doom KeyResults belonging to doomed OkrObjectives
+insert @doomed
+select ID from KeyResult_Now join @doomed on doomed=OkrObjectiveID
+
+-- doom OkrComments belonging to doomed Okrs or authored by doomed Members
+insert @doomed
+select ID from OkrComment_Now join @doomed on doomed=BelongsToID
+union
+select ID from OkrComment_Now join @doomed on doomed=AuthorID
+
 -- doom Budgets attached to doomed Projects
 insert @doomed
 select ID from Budget_Now join @doomed on doomed=ScopeID
@@ -1555,14 +1569,51 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s AssetLongStrings purged', 0, 1, @rowcount) with nowait
 
 raiserror('OkrAssociatedAssets', 0, 1) with nowait
-delete OkrAssociatedAsset from @doomed where doomed=BaseAssetID
+delete OkrAssociatedAssets from @doomed where doomed=BaseAssetID or doomed=OkrID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s OkrAssociatedAssets purged', 0, 1, @rowcount) with nowait
 
 raiserror('OkrObjectiveSharedAccessWith', 0, 1) with nowait
-delete OkrObjectiveSharedAccessWith from @doomed where doomed=MemberID
+delete OkrObjectiveSharedAccessWith from @doomed where doomed=OkrObjectiveID or doomed=MemberID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s OkrObjectiveSharedAccessWith purged', 0, 1, @rowcount) with nowait
+
+raiserror('OkrObjectiveLinkedFrom', 0, 1) with nowait
+delete OkrObjectiveLinkedFrom from @doomed where doomed=OkrObjectiveID1 or doomed=OkrObjectiveID2
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s OkrObjectiveLinkedFrom purged', 0, 1, @rowcount) with nowait
+
+raiserror('OkrComments', 0, 1) with nowait
+delete OkrComment_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete OkrComment from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s OkrComments purged', 0, 1, @rowcount) with nowait
+
+raiserror('KeyResults', 0, 1) with nowait
+delete KeyResult_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete KeyResult from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s KeyResults purged', 0, 1, @rowcount) with nowait
+
+raiserror('OkrObjectives', 0, 1) with nowait
+delete OkrObjective_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+update OkrObjective_Now set CascadedFromID=null from @doomed where doomed=CascadedFromID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete OkrObjective from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+update OkrObjective set CascadedFromID=null from @doomed where doomed=CascadedFromID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s OkrObjectives purged', 0, 1, @rowcount) with nowait
+
+raiserror('Okrs', 0, 1) with nowait
+delete Okr_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete Okr from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s Okrs purged', 0, 1, @rowcount) with nowait
 
 raiserror('Rebuilding EffectiveACLs', 0, 1) with nowait
 insert dbo.EffectiveACL
