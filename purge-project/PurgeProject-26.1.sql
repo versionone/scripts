@@ -16,7 +16,7 @@ declare @allowRecursion bit; --set @allowRecursion = 1
 declare @saveMembers bit; -- set @saveMembers = 1
 
 -- Ensure the correct database version
-declare @supportedVersion varchar(10); set @supportedVersion = '25.2'
+declare @supportedVersion varchar(10); set @supportedVersion = '26.1'
 if (@supportedVersion is not null) begin
 	if not exists (select * from SystemConfig where Name='Version' and Value like @supportedVersion + '.%') begin
 		raiserror('This script can only run on a %s VersionOne database',16,1, @supportedVersion)
@@ -990,6 +990,8 @@ update Request_Now set PriorityID=null from @doomed where doomed=PriorityID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Request_Now set ResolutionReasonID=null from @doomed where doomed=ResolutionReasonID
 select @error=@@ERROR; if @error<>0 goto ERR
+update Request_Now set SpurredByID=null from @doomed where doomed=SpurredByID
+select @error=@@ERROR; if @error<>0 goto ERR
 delete Request from @doomed where doomed=ID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Request set OwnerID=null from @doomed where doomed=OwnerID
@@ -1001,6 +1003,8 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update Request set PriorityID=null from @doomed where doomed=PriorityID
 select @error=@@ERROR; if @error<>0 goto ERR
 update Request set ResolutionReasonID=null from @doomed where doomed=ResolutionReasonID
+select @error=@@ERROR; if @error<>0 goto ERR
+update Request set SpurredByID=null from @doomed where doomed=SpurredByID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Requests purged', 0, 1, @rowcount) with nowait
 
