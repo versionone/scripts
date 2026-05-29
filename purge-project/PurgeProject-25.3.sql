@@ -351,11 +351,6 @@ select ID from OkrObjective_Now join @doomed on doomed=OwnerID
 insert @doomed
 select ID from KeyResult_Now join @doomed on doomed=OkrObjectiveID
 
--- doom OkrComments belonging to doomed Okrs or authored by doomed Members
-insert @doomed
-select ID from OkrComment_Now join @doomed on doomed=BelongsToID
-union
-select ID from OkrComment_Now join @doomed on doomed=AuthorID
 
 -- doom Budgets attached to doomed Projects
 insert @doomed
@@ -1568,10 +1563,15 @@ delete AssetLongString from @doomed where doomed=ID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s AssetLongStrings purged', 0, 1, @rowcount) with nowait
 
-raiserror('OkrAssociatedAssets', 0, 1) with nowait
-delete OkrAssociatedAssets from @doomed where doomed=BaseAssetID or doomed=OkrID
+raiserror('OkrAlignedWorkitems', 0, 1) with nowait
+delete OkrAlignedWorkitems from @doomed where doomed=OkrID or doomed=WorkitemID
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-raiserror('%s OkrAssociatedAssets purged', 0, 1, @rowcount) with nowait
+raiserror('%s OkrAlignedWorkitems purged', 0, 1, @rowcount) with nowait
+
+raiserror('OkrAlignedStrategicThemes', 0, 1) with nowait
+delete OkrAlignedStrategicThemes from @doomed where doomed=OkrID or doomed=StrategicThemeID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s OkrAlignedStrategicThemes purged', 0, 1, @rowcount) with nowait
 
 raiserror('OkrObjectiveSharedAccessWith', 0, 1) with nowait
 delete OkrObjectiveSharedAccessWith from @doomed where doomed=OkrObjectiveID or doomed=MemberID
@@ -1582,13 +1582,6 @@ raiserror('OkrObjectiveLinkedFrom', 0, 1) with nowait
 delete OkrObjectiveLinkedFrom from @doomed where doomed=OkrObjectiveID1 or doomed=OkrObjectiveID2
 select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s OkrObjectiveLinkedFrom purged', 0, 1, @rowcount) with nowait
-
-raiserror('OkrComments', 0, 1) with nowait
-delete OkrComment_Now from @doomed where doomed=ID
-select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
-delete OkrComment from @doomed where doomed=ID
-select @error=@@ERROR; if @error<>0 goto ERR
-raiserror('%s OkrComments purged', 0, 1, @rowcount) with nowait
 
 raiserror('KeyResults', 0, 1) with nowait
 delete KeyResult_Now from @doomed where doomed=ID
