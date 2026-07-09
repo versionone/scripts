@@ -4,6 +4,7 @@
  *	Set @scopeToPurge to the ID of the project to purge.
  *	Set @allowRecursion=1 to purge child projects recursively.
  *	Set @saveMembers=1 to keep Member data
+ * Set @saveTeams=1 to keep all Teams
  *
  *	NOTE:  This script defaults to rolling back changes.
  *		To commit changes, set @commitChanges = 1.
@@ -14,6 +15,7 @@ declare @commitChanges tinyint; --set @commitChanges = 1; --set @commitChanges =
 declare @scopeToPurge int; --set @scopeToPurge = 54198
 declare @allowRecursion bit; --set @allowRecursion = 1
 declare @saveMembers bit; -- set @saveMembers = 1
+declare @saveTeams bit; -- set @saveTeams = 1
 
 -- Ensure the correct database version
 declare @supportedVersion varchar(10); set @supportedVersion = '26.1'
@@ -81,6 +83,12 @@ insert @safeMembers
 select ID from BaseAsset_Now where @saveMembers=1 and AssetType='Member' and AssetState<255
 except
 select safeMember from @safeMembers
+
+-- save all non-deleted Teams, if requested
+insert @safeTeams
+select ID from BaseAsset_Now where @saveTeams=1 and AssetType='Team' and AssetState<255
+except
+select safeTeam from @safeTeams
 
 -- doom the seed Scope
 insert @doomed values(@scopeToPurge)
