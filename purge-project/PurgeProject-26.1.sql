@@ -103,6 +103,9 @@ end
 -- NEVER purge Scope:0 !
 delete @doomed where doomed = 0
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- all other Scopes are safe
 insert @safeScopes
 select ID from Scope_Now
@@ -120,9 +123,15 @@ select distinct TestSuiteID from Scope join @doomed on doomed=ID where TestSuite
 except
 select distinct TestSuiteID from Scope join @safeScopes on safeScope=ID where TestSuiteID is not null
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom TestRuns belonging to doomed TestSuites
 insert @doomed
 select distinct ID from TestRun_Now join @doomed on doomed=TestSuiteID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom all Schedules of doomed Scopes, except those ever used by safe Scopes
 insert @doomed
@@ -130,9 +139,15 @@ select distinct ScheduleID from Scope join @doomed on doomed=ID where ScheduleID
 except
 select distinct ScheduleID from Scope join @safeScopes on safeScope=ID where ScheduleID is not null
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Timeboxes currently belonging to doomed  Schedules
 insert @doomed
 select ID from Timebox_Now join @doomed on doomed=ScheduleID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- current owners of safe Timeboxes are safe
 insert @safeMembers
@@ -145,17 +160,29 @@ select distinct SchemeID from Scope join @doomed on doomed=ID
 except
 select distinct SchemeID from Scope join @safeScopes on safeScope=ID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Goals that live in doomed Scopes
 insert @doomed
 select ID from Goal_Now join @doomed on doomed=ScopeID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Roadmaps that live in doomed Scopes
 insert @doomed
 select ID from Roadmap_Now join @doomed on doomed=ScopeID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Issues that live in doomed Scopes
 insert @doomed
 select ID from Issue_Now join @doomed on doomed=ScopeID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- current owners of safe Issues are safe
 insert @safeMembers
@@ -171,6 +198,9 @@ except select safeTeam from @safeTeams
 insert @doomed
 select ID from Request_Now join @doomed on doomed=ScopeID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- current owners of safe Requests are safe
 insert @safeMembers
 select distinct OwnerID from Request_Now where ID not in (select doomed from @doomed) and OwnerID is not null
@@ -179,6 +209,9 @@ except select safeMember from @safeMembers
 -- doom Retrospectives that live in doomed Scopes
 insert @doomed
 select ID from Retrospective_Now join @doomed on doomed=ScopeID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- current facilitators of safe Retrospectives are safe
 insert @safeMembers
@@ -194,13 +227,22 @@ except select safeTeam from @safeTeams
 insert @doomed
 select ID from RetrospectivePrompt_Now join @doomed on doomed=DefinedInID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom RetrospectiveTopic that live in doomed Retrospectives
 insert @doomed
 select ID from RetrospectiveTopic_Now join @doomed on doomed=BelongsToID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom RetrospectiveTopic that live in doomed RetrospectivePrompts
 insert @doomed
 select ID from RetrospectiveTopic_Now join @doomed on doomed=ElicitedByID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- current authors of safe RetrospectiveTopic are safe
 insert @safeMembers
@@ -210,6 +252,9 @@ except select safeMember from @safeMembers
 -- doom RegressionTests belonging to doomed Scopes
 insert @doomed
 select ID from RegressionTest_Now join @doomed on doomed=ScopeID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- current Teams of safe RegressionTests are safe
 insert @safeTeams
@@ -225,6 +270,9 @@ except select safeMember from @safeMembers
 insert @doomed
 select ID from RegressionPlan_Now join @doomed on doomed=ScopeID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- current Owners of safe RegressionPlans are safe
 insert @safeMembers
 select distinct OwnerID from RegressionPlan_Now where ID not in (select doomed from @doomed) and OwnerID is not null
@@ -233,6 +281,9 @@ except select safeMember from @safeMembers
 -- doom RegressionSuites belonging to doomed RegressionPlans
 insert @doomed
 select ID from RegressionSuite_Now join @doomed on doomed=RegressionPlanID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- current Owners of safe RegressionSuites are safe
 insert @safeMembers
@@ -243,9 +294,15 @@ except select safeMember from @safeMembers
 insert @doomed
 select ID from Environment_Now join @doomed on doomed=ScopeID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Workitems that live in doomed Scopes
 insert @doomed
 select ID from Workitem_Now join @doomed on doomed=ScopeID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- current teams of safe Workitems are safe
 insert @safeTeams
@@ -277,6 +334,9 @@ insert @doomed
 select ID from TestSet_Now join @doomed on doomed=RegressionSuiteID
 except select doomed from @doomed
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- current Customers of safe Tasks are safe
 insert @safeMembers
 select distinct CustomerID from Task_Now where ID not in (select doomed from @doomed) and CustomerID is not null
@@ -288,9 +348,15 @@ select distinct BuildProjectID from BuildProjectScopes join @doomed on doomed=Sc
 except
 select distinct BuildProjectID from BuildProjectScopes join @safeScopes on safeScope=ScopeID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom BuildRuns belonging to doomed BuildProjects
 insert @doomed
 select ID from BuildRun_Now join @doomed on doomed=BuildProjectID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom ChangeSets ever associated with doomed BuildRuns, except those ever associated with safe BuildRuns
 insert @doomed
@@ -298,11 +364,17 @@ select distinct ChangeSetID from BuildRunChangeSets join @doomed on doomed=Build
 except
 select distinct ChangeSetID from BuildRunChangeSets join @safeScopes on safeScope=BuildRunID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Capacities of doomed Scopes or Timeboxes
 insert @doomed
 select ID from Capacity_Now join @doomed on doomed=ScopeID
 union
 select ID from Capacity_Now join @doomed on doomed=TimeboxID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- Members with safe Capacity are safe
 insert @safeMembers
@@ -322,6 +394,9 @@ select ID from Actual_Now join @doomed on doomed=TimeboxID
 union
 select ID from Actual_Now join @doomed on doomed=WorkitemID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- Members with safe Actuals are safe
 insert @safeMembers
 select distinct MemberID from Actual_Now where ID not in (select doomed from @doomed) and MemberID is not null
@@ -337,9 +412,15 @@ insert @doomed
 select ID from Team_Now
 except select safeTeam from @safeTeams
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom List values of doomed Teams
 insert @doomed
 select ID from List_Now join @doomed on doomed=TeamID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- Members assigned to safe Scopes are safe
 insert @safeMembers
@@ -351,22 +432,37 @@ insert @doomed
 select distinct MemberID from ScopeMemberACL join @doomed on doomed=ScopeID where RoleID<>0 or Owner<>0
 except select safeMember from @safeMembers
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom OkrObjectives owned by doomed Members
 insert @doomed
 select ID from OkrObjective_Now join @doomed on doomed=OwnerID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom KeyResults belonging to doomed OkrObjectives
 insert @doomed
 select ID from KeyResult_Now join @doomed on doomed=OkrObjectiveID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Budgets attached to doomed Projects
 insert @doomed
 select ID from Budget_Now join @doomed on doomed=ScopeID
 except select doomed from @doomed
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Allocations for doomed Budgets and doomed Assets
 insert @doomed
 select DISTINCT ID from Allocation_Now join @doomed on doomed=BudgetID or doomed=AssetID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom child Allocations of doomed Allocations
 while 1=1 begin
@@ -376,6 +472,9 @@ while 1=1 begin
 	if @@ROWCOUNT=0 break
 end
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Budgets that have only doomed Allocations
 insert @doomed
 select distinct BudgetID from Allocation_Now join @doomed on doomed=ID
@@ -383,15 +482,24 @@ except
 select distinct BudgetID from Allocation_Now where ID not in (select doomed from @doomed)
 except select doomed from @doomed
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom MessageReceipts that are for doomed Recipients
 insert @doomed
 select ID from MessageReceipt_Now join @doomed on doomed=RecipientID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Messages that have no un-doomed MessageReceipts
 insert @doomed
 select distinct MessageID from MessageReceipt_Now join @doomed on doomed=ID
 except
 select distinct MessageID from MessageReceipt_Now where ID not in (select doomed from @doomed)
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Messages that are about doomed assets (recursively)
 while 1=1 begin
@@ -400,18 +508,30 @@ while 1=1 begin
 	if @@ROWCOUNT=0 break
 end
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom MessageReceipts that are for doomed Messages
 insert @doomed
 select ID from MessageReceipt_Now join @doomed on doomed=MessageID
 except select doomed from @doomed
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 --doom StrategicThemes in doomed Scopes
 insert @doomed
 select ID from StrategicTheme_Now join @doomed on doomed=ScopeID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Milestones that live in doomed Scopes
 insert @doomed
 select ID from Milestone_Now join @doomed on doomed=ScopeID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Releases of doomed Epics and PrimaryWorkitems
 -- except current/past Releases of safe Epics and PrimaryWorkitems
@@ -424,11 +544,17 @@ select PlannedReleaseID from Epic where ID not in (select doomed from @doomed)
 except
 select ReleaseID from PrimaryWorkitem where ID not in (select doomed from @doomed)
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom ValueStreams ever used by doomed Releases, except those ever used by safe Releases
 insert @doomed
 select distinct ValueStreamID from Release join @doomed on doomed=ID
 except
 select ValueStreamID from Release where ID not in (select doomed from @doomed)
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- Releases of safe ValuesStreams are safe
 delete @doomed
@@ -442,27 +568,45 @@ insert @doomed
 select ID from BaseAsset_Now join @doomed on doomed=SecurityScopeID
 except select doomed from @doomed
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Attachments on doomed assets
 insert @doomed
 select ID from Attachment_Now join @doomed on doomed=AssetID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Links on doomed assets
 insert @doomed
 select ID from Link_Now join @doomed on doomed=AssetID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom ExternalActions that have a doomed TriggerType
 insert @doomed
 select ID from ExternalAction_Now join @doomed on doomed=TriggerTypeID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom ExternalActionInvocations invoked on doomed assets or caused by doomed ExternalActions
 insert @doomed
 select ID from ExternalActionInvocation_Now join @doomed on doomed=InvokedOnID or doomed=CausedByID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Notes about doomed assets or personal to doomed Members
 insert @doomed
 select ID from Note_Now join @doomed on doomed=AssetID
 union
 select ID from Note_Now join @doomed on doomed=PersonalToID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Notes in response to doomed Notes
 while 1=1 begin
@@ -472,13 +616,22 @@ while 1=1 begin
 	if @@ROWCOUNT=0 break
 end
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom EmbeddedImages on doomed assets
 insert @doomed
 select ID from EmbeddedImage_Now join @doomed on doomed=AssetID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Expressions in doomed Conversations
 insert @doomed
 select distinct ID from Expression_Now join @doomed on doomed=BelongsToID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom ScopeLabels ever used by doomed Scopes, except those ever used by safe Scopes
 insert @doomed
@@ -486,25 +639,43 @@ select distinct ScopeLabelID from ScopeScopeLabels join @doomed on doomed=ScopeI
 except
 select distinct ScopeLabelID from ScopeScopeLabels where ScopeID not in (select doomed from @doomed)
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom MemberLabels ever used by doomed Members, except those ever used by safe Members
 insert @doomed
 select distinct MemberLabelID from MemberMemberLabels join @doomed on doomed=MemberID
 except
 select distinct MemberLabelID from MemberMemberLabels where MemberID not in (select doomed from @doomed)
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Subscriptions of doomed Members
 insert @doomed select ID from Subscription_Now join @doomed on doomed=SubscriberID
 -- doom SubscriptionTerms belonging to doomed Subscriptions
 insert @doomed select ID from SubscriptionTerm_Now join @doomed on doomed=SubscriptionID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Accesses by doomed Members
 insert @doomed select ID from Access_Now join @doomed on doomed=ByID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom IdeasUserCaches of doomed Members
 insert @doomed select ID from IdeasUserCache_Now join @doomed on doomed=MemberID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- Snapshots?
 insert @doomed select ID from Snapshot_Now join @doomed on doomed=AssetID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Rooms tied to doomed Scopes or doomed Schedules
 insert @doomed
@@ -512,27 +683,46 @@ select ID from Room_Now join @doomed on doomed=ScopeID
 union
 select ID from Room_Now join @doomed on doomed=ScheduleID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom avatar Images of doomed Members and mascot Images of doomed Rooms
 insert @doomed
 select AvatarID from Member join @doomed on doomed=ID where AvatarID is not null
 union
 select MascotID from Room join @doomed on doomed=ID where MascotID is not null
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Publications of doomed Members
 insert @doomed
 select ID from Publication_Now join @doomed on doomed=AuthorID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom Grants belonging to doomed Members
 insert @doomed
 select ID from Grant_Now join @doomed on doomed=OwnerID
 
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
+
 -- doom Timesheets of doomed Members
 insert @doomed
 select ID from Timesheet_Now join @doomed on doomed=MemberID
+select @rowcount=@@ROWCOUNT
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 -- doom SavedViews owned by doomed Members or pegged to doomed Scopes
 insert @doomed
 select ID from SavedView_Now join @doomed on doomed=OwnerID or doomed=ScopeID
+
+select @rowcount=count(*) from @doomed
+raiserror('Doomed %s IDs', 0, 1, @rowcount) with nowait
 
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
 ------------------------------------------------------------------------------------------------------------------------------------------------------------------
