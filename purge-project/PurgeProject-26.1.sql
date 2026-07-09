@@ -9,6 +9,16 @@
  *	NOTE:  This script defaults to rolling back changes.
  *		To commit changes, set @commitChanges = 1.
  *		To make changes WITHOUT A TRANSACTION, no possibility of rollback, and possible data corruption, set @commitChanges = 2
+ *
+ *
+ *	NOTE: If you have to terminate the script, restore the database to a usable state
+ *	by running the following commands (in this same session):
+
+	rollback
+	exec sp_MSforeachtable @command1='enable trigger all on ?'
+	alter database current set MULTI_USER with rollback immediate
+	alter database current set AUTO_UPDATE_STATISTICS_ASYNC ON
+
  */
 
 declare @commitChanges tinyint; --set @commitChanges = 1; --set @commitChanges = 2
