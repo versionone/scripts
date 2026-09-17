@@ -1,18 +1,31 @@
 /*
- *	Redact the name and description of a story,
+ *	Redact the name, description, tags, custom text and longtext fields of a story,
  *	along with any commits or webhook events that contain the name or description in their payload.
  *
  * INSTRUCTIONS:
  * 1. Set @storyNumber to the Story number to redact
- * 2. Review the messages printed by the script to verify that it is updating the expected records
- * 3. Set @saveChanges=1
- * 4. Rerun the script to commit the changes
+ * 2. Set @customTextDefinition if any custom text field needs to be redacted
+ * 3. Set @customLongTextDefinition if any custom long text field needs to be redacted
+ * 4. Review the messages printed by the script to verify that it is updating the expected records
+ * 5. Set @saveChanges=1
+ * 6. Rerun the script to commit the changes
  *
  *	NOTE:  This script defaults to rolling back changes.
  *		To commit changes, set @saveChanges = 1.
  */
 declare @storyNumber int=NNNNN
+declare @customTextDefinition varchar(201)='AssetType.Custom_text_field'
+declare @customLongTextDefinition varchar(201)='AssetType.Custom_long_text_field'
 declare @saveChanges bit; --set @saveChanges = 1
+
+declare @customTextFieldName varchar(201)= right(
+        @customTextDefinition,
+        charindex('.', reverse(@customTextDefinition)) - 1
+    )
+declare @customLongTextFieldName varchar(201) = right(
+        @customLongTextDefinition,
+        charindex('.', reverse(@customLongTextDefinition)) - 1
+    )
 
 declare @storyId int
 select @storyId=ID from dbo.Workitem_Now where AssetType='Story' and Number=@storyNumber
@@ -48,10 +61,40 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d Descriptions redacted', 0, 1, @rowcount) with nowait
 
+update dbo.String
+set Value=@redacted, Hash=@hash
+from dbo.CustomText
+where String.ID=CustomText.Value and CustomText.ID=@storyId
+and CustomText.Definition in (@customTextDefinition)
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d Custom Text redacted', 0, 1, @rowcount) with nowait
+
+update dbo.LongString
+set Value=@redacted
+from dbo.CustomLongText
+where LongString.ID=CustomLongText.Value and CustomLongText.ID=@storyId
+and CustomLongText.Definition in (@customLongTextDefinition)
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d Custom Long Text redacted', 0, 1, @rowcount) with nowait
+
+delete dbo.BaseAssetTaggedWith
+where ID=@storyId
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d Tags deleted', 0, 1, @rowcount) with nowait
+
 delete dbo.Commits
 where cast(Payload as varchar(max)) like '%Asset":"'+@storyOid and (
-	cast(Payload as varchar(max)) like '%"Name":"Name"%' or
-	cast(Payload as varchar(max)) like '%"Name":"Description"%'
+cast(Payload as varchar(max)) like '%"Name":"Name"%' or
+cast(Payload as varchar(max)) like '%"Name":"Description"%' or
+cast(Payload as varchar(max)) like '%"Name":"TaggedWith"%' or
+cast(Payload as varchar(max)) like '%"Name":"' + @customTextFieldName + '"%' or
+cast(Payload as varchar(max)) like '%"Name":"' + @customLongTextFieldName + '"%'
 )
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -61,7 +104,10 @@ raiserror('%d Commits deleted', 0, 1, @rowcount) with nowait
 delete dbo.WebhookEvents
 where cast(Payload as varchar(max)) like '%oid":"'+@storyOid and (
 	cast(Payload as varchar(max)) like '%"name":"Name"%' or
-	cast(Payload as varchar(max)) like '%"name":"Description"%'
+	cast(Payload as varchar(max)) like '%"name":"Description"%' or
+	cast(Payload as varchar(max)) like '%"name":"TaggedWith"%' or
+	cast(Payload as varchar(max)) like '%"name":"' + @customTextFieldName + '"%' or
+	cast(Payload as varchar(max)) like '%"name":"' + @customLongTextFieldName + '"%'
 )
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
