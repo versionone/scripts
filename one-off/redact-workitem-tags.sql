@@ -7,6 +7,8 @@ Set @saveChanges to 1 to commit changes, or 0 to roll back.
 
 declare @workitemNumber int=NNNNN
 declare @assetType varchar(100)=NULL -- e.g. 'Story'
+declare @tagValue varchar(440)=NULL -- e.g. 'all'
+declare @replaceWith varchar(440)='redacted'
 declare @saveChanges bit; set @saveChanges = 1
 
 declare @workitemId int
@@ -23,8 +25,9 @@ declare @workitemOid varchar(max)=@assetType+':'+cast(@workitemId as varchar(max
 set nocount on; begin tran; save tran tx
 declare @error int, @rowcount int
 
-delete dbo.BaseAssetTaggedWith
-where ID=@workitemId
+update dbo.BaseAssetTaggedWith
+set Value=@replaceWith
+where ID=@workitemId and Value=@tagValue
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
@@ -32,7 +35,7 @@ raiserror('%d Tags deleted', 0, 1, @rowcount) with nowait
 
 delete dbo.Commits
 where cast(Payload as varchar(max)) like '%Asset":"'+@workitemOid 
-and cast(Payload as varchar(max)) like '%"Name":"TaggedWith"%'
+and cast(Payload as varchar(max)) like '%"Name":"TaggedWith"%Value":"'+@tagValue+'"%'
 
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -41,7 +44,7 @@ raiserror('%d Commits deleted', 0, 1, @rowcount) with nowait
 
 delete dbo.WebhookEvents
 where cast(Payload as varchar(max)) like '%oid":"'+@workitemOid 
-and cast(Payload as varchar(max)) like '%"name":"TaggedWith"%'
+and cast(Payload as varchar(max)) like '%"name":"TaggedWith"%"new":"'+@tagValue+'"%'
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
