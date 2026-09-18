@@ -1,0 +1,112 @@
+/*
+ *	Redact the name, description, and selected custom text/long-text fields of a story,
+ *	and delete any commits or webhook events that include those fields in their payload.
+ *
+ * INSTRUCTIONS:
+ * 1. Set @storyNumber to the Story number to redact
+ * 2. Set @customTextDefinition if any custom text field needs to be redacted
+ * 3. Set @customLongTextDefinition if any custom long text field needs to be redacted
+ * 4. Review the messages printed by the script to verify that it is updating the expected records
+ * 5. Set @saveChanges=1
+ * 6. Rerun the script to commit the changes
+ *
+ *	NOTE:  This script defaults to rolling back changes.
+ *		To commit changes, set @saveChanges = 1.
+ */
+declare @storyNumber int=NNNNN
+declare @customTextDefinition varchar(201)=NULL -- e.g. 'AssetType.Custom_text_field'
+declare @customLongTextDefinition varchar(201)=NULL -- e.g. 'AssetType.Custom_long_text_field'
+declare @saveChanges bit; set @saveChanges = 1
+
+declare @customTextFieldName varchar(201)=case
+ 		when @customTextDefinition is not null and charindex('.', @customTextDefinition) > 0
+ 			then right(@customTextDefinition, charindex('.', reverse(@customTextDefinition)) - 1)
+	end
+declare @customLongTextFieldName varchar(201)=case
+ 		when @customLongTextDefinition is not null and charindex('.', @customLongTextDefinition) > 0
+ 			then right(@customLongTextDefinition, charindex('.', reverse(@customLongTextDefinition)) - 1)
+ 	end
+
+declare @storyId int
+select @storyId=ID from dbo.Workitem_Now where AssetType='Story' and Number=@storyNumber
+
+if (@storyId is null) begin
+	raiserror('S-%d not found', 16, 1, @storyNumber)
+	return
+end
+raiserror('Found Story:%d', 0, 1, @storyId) with nowait
+
+declare @storyOid varchar(max)='Story:'+cast(@storyId as varchar(max))+':%'
+declare @redacted nvarchar(max)=N'redacted'
+declare @hash int=BINARY_CHECKSUM(@redacted)
+
+set nocount on; begin tran; save tran tx
+declare @error int, @rowcount int
+
+update dbo.String
+set Value=@redacted, Hash=@hash
+from dbo.BaseAsset
+where String.ID=Name and BaseAsset.ID=@storyId
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d Names redacted', 0, 1, @rowcount) with nowait
+
+update dbo.LongString
+set Value=@redacted
+from dbo.BaseAsset
+where LongString.ID=Description and BaseAsset.ID=@storyId
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d Descriptions redacted', 0, 1, @rowcount) with nowait
+
+update dbo.String
+set Value=@redacted, Hash=@hash
+from dbo.CustomText
+where @customTextDefinition is not null and String.ID=CustomText.Value and CustomText.ID=@storyId
+and CustomText.Definition = @customTextDefinition
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d Custom Text redacted', 0, 1, @rowcount) with nowait
+
+update dbo.LongString
+set Value=@redacted
+from dbo.CustomLongText
+where @customLongTextDefinition is not null and LongString.ID=CustomLongText.Value and CustomLongText.ID=@storyId
+and CustomLongText.Definition = @customLongTextDefinition	
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d Custom Long Text redacted', 0, 1, @rowcount) with nowait
+
+delete dbo.Commits
+where cast(Payload as varchar(max)) like '%Asset":"'+@storyOid and (
+cast(Payload as varchar(max)) like '%"Name":"Name"%' or
+cast(Payload as varchar(max)) like '%"Name":"Description"%' or
+cast(Payload as varchar(max)) like '%"Name":"' + @customTextFieldName + '"%' or
+cast(Payload as varchar(max)) like '%"Name":"' + @customLongTextFieldName + '"%'
+)
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d Commits deleted', 0, 1, @rowcount) with nowait
+
+delete dbo.WebhookEvents
+where cast(Payload as varchar(max)) like '%oid":"'+@storyOid and (
+	cast(Payload as varchar(max)) like '%"name":"Name"%' or
+	cast(Payload as varchar(max)) like '%"name":"Description"%' or
+	cast(Payload as varchar(max)) like '%"name":"' + @customTextFieldName + '"%' or
+	cast(Payload as varchar(max)) like '%"name":"' + @customLongTextFieldName + '"%'
+)
+
+select @rowcount=@@ROWCOUNT, @error=@@ERROR
+if @error<>0 goto ERR
+raiserror('%d WebhookEvents deleted', 0, 1, @rowcount) with nowait
+
+if @saveChanges=1 goto OK
+raiserror('Rolling back changes.  To commit changes, set @saveChanges=1', 16, 1)
+ERR: rollback tran tx
+OK: commit
+
