@@ -1,6 +1,6 @@
 /*
- *	Redact the name, description, tags, custom text and longtext fields of a story,
- *	along with any commits or webhook events that contain the name or description in their payload.
+ *	Redact the name, description, tags, and selected custom text/long-text fields of a story,
+ *	and delete any commits or webhook events that include those fields in their payload.
  *
  * INSTRUCTIONS:
  * 1. Set @storyNumber to the Story number to redact
@@ -65,7 +65,7 @@ update dbo.String
 set Value=@redacted, Hash=@hash
 from dbo.CustomText
 where String.ID=CustomText.Value and CustomText.ID=@storyId
-and CustomText.Definition in (@customTextDefinition)
+and CustomText.Definition = @customTextDefinition
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
@@ -75,7 +75,7 @@ update dbo.LongString
 set Value=@redacted
 from dbo.CustomLongText
 where LongString.ID=CustomLongText.Value and CustomLongText.ID=@storyId
-and CustomLongText.Definition in (@customLongTextDefinition)
+and CustomLongText.Definition = @customLongTextDefinition	
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
