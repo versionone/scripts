@@ -1,15 +1,17 @@
 /*
-This script redacts tags associated with a specific workitem.
+This script redacts a specific tag associated with a specific workitem.
 Set @workitemNumber to the number of the workitem you want to redact.
 Set @assetType to the type of the workitem (e.g., 'Story').
+Set @tagValue to the exact tag value to redact.
+Set @replaceWith to the value that will replace the tag.
 Set @saveChanges to 1 to commit changes, or 0 to roll back.
 */
 
 declare @workitemNumber int=NNNNN
 declare @assetType varchar(100)=NULL -- e.g. 'Story'
-declare @tagValue varchar(440)=NULL -- e.g. 'all'
-declare @replaceWith varchar(440)='redacted'
-declare @saveChanges bit; set @saveChanges = 1
+declare @tagValue nvarchar(440)=NULL -- e.g. 'item for review' (the literal tag value)
+declare @replaceWith nvarchar(440)='redacted'
+declare @saveChanges bit; --set @saveChanges = 1
 
 declare @workitemId int
 select @workitemId=ID from dbo.Workitem_Now where AssetType=@assetType and Number=@workitemNumber
@@ -19,6 +21,17 @@ if (@workitemId is null) begin
 	return
 end
 raiserror('Found %s:%d', 0, 1, @assetType, @workitemId) with nowait
+
+if exists (
+	select 1
+	from dbo.BaseAssetTaggedWith
+	where ID=@workitemId
+	and Value=@replaceWith
+	and Value<>@tagValue
+) begin
+	raiserror('Replacement tag already exists in this workitem''s history', 16, 1)
+	return
+end
 
 declare @workitemOid varchar(max)=@assetType+':'+cast(@workitemId as varchar(max))+':%'
 
@@ -33,9 +46,11 @@ select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
 raiserror('%d Tags deleted', 0, 1, @rowcount) with nowait
 
+declare @encodedTag as nvarchar (max) = REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(REPLACE(@tagValue, N'\', N'\\'), N'"', N'\"'), N'~', N'~~'), N'%', N'~%'), N'_', N'~_'), N'[', N'~[');
+
 delete dbo.Commits
 where cast(Payload as varchar(max)) like '%Asset":"'+@workitemOid 
-and cast(Payload as varchar(max)) like '%"Name":"TaggedWith"%Value":"'+@tagValue+'"%'
+and cast(Payload as varchar(max)) like '%"Name":"TaggedWith"%Value":"'+@encodedTag+'"%' ESCAPE N'~';
 
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
@@ -44,7 +59,7 @@ raiserror('%d Commits deleted', 0, 1, @rowcount) with nowait
 
 delete dbo.WebhookEvents
 where cast(Payload as varchar(max)) like '%oid":"'+@workitemOid 
-and cast(Payload as varchar(max)) like '%"name":"TaggedWith"%"new":"'+@tagValue+'"%'
+and cast(Payload as varchar(max)) like '%"name":"TaggedWith"%"new":"'+@encodedTag+'"%' ESCAPE N'~';
 
 select @rowcount=@@ROWCOUNT, @error=@@ERROR
 if @error<>0 goto ERR
