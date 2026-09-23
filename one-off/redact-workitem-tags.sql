@@ -10,7 +10,7 @@ Set @saveChanges to 1 to commit changes, or 0 to roll back.
 declare @workitemNumber int=NNNNN
 declare @assetType varchar(100)=NULL -- e.g. 'Story'
 declare @tagValue nvarchar(440)=NULL -- e.g. 'item for review' (the literal tag value)
-declare @replaceWith nvarchar(440)='redacted'
+declare @replaceWith nvarchar(440)=N'redacted-' + cast(newid() as nvarchar(max))
 declare @saveChanges bit; --set @saveChanges = 1
 
 declare @workitemId int
