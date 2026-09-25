@@ -16,7 +16,7 @@
 declare @storyNumber int=NNNNN
 declare @customTextDefinition varchar(201)=NULL -- e.g. 'AssetType.Custom_text_field'
 declare @customLongTextDefinition varchar(201)=NULL -- e.g. 'AssetType.Custom_long_text_field'
-declare @saveChanges bit; set @saveChanges = 1
+declare @saveChanges bit; --set @saveChanges = 1
 
 declare @customTextFieldName varchar(201)=case
  		when @customTextDefinition is not null and charindex('.', @customTextDefinition) > 0
