@@ -10,11 +10,11 @@ set nocount on
 create table #inuse (ID int not null primary key)
 
 declare @sql varchar(8000); select @sql='insert #inuse(ID)'
-select @sql = @sql + ' select ' + QUOTENAME(d.Name) + ' from dbo.' + QUOTENAME(t.Name) + ' union' 
+select @sql = @sql + ' select ' + QUOTENAME(d.Name) + ' from dbo.' + QUOTENAME(t.Name) + ' where ' + QUOTENAME(d.Name) + ' is not null union' 
 from AttributeDefinition_Now d
 join AssetType_Now t on t.ID=d.AssetID
 where d.AttributeType='Blob'
-select @sql = left(@sql, len(@sql) - len(' union'))
+select @sql = @sql + ' select HeadersId from dbo.WebhookReceipt where HeadersId is not null union select ResponseId from dbo.WebhookReceipt where ResponseId is not null'
 
 --print @sql
 exec (@sql)
