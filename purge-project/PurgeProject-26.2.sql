@@ -333,6 +333,16 @@ except select safeTeam from @safeTeams
 insert @doomed
 select ID from List_Now join @doomed on doomed=TeamID
 
+-- doom TeamWorkflows of doomed Teams
+insert @doomed
+select ID from TeamWorkflow_Now join @doomed on doomed=TeamID
+except select doomed from @doomed
+
+-- doom WorkflowTransitions of doomed Workflows or targeting doomed Statuses
+insert @doomed
+select distinct ID from WorkflowTransition_Now join @doomed on doomed=WorkflowID or doomed=ToStatusID
+except select doomed from @doomed
+
 -- Members assigned to safe Scopes are safe
 insert @safeMembers
 select distinct MemberID from ScopeMemberACL join @safeScopes on safeScope=ScopeID where RoleID<>0 or Owner<>0
@@ -1488,6 +1498,31 @@ select @error=@@ERROR; if @error<>0 goto ERR
 update Member set ManagerID=null from @doomed where doomed=ManagerID
 select @error=@@ERROR; if @error<>0 goto ERR
 raiserror('%s Members purged', 0, 1, @rowcount) with nowait
+
+raiserror('WorkflowTransitions', 0, 1) with nowait
+delete WorkflowTransitionAllowedStatuses from @doomed where doomed=WorkflowTransitionID or doomed=StatusID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete WorkflowTransitionAllowedRoles from @doomed where doomed=WorkflowTransitionID
+select @error=@@ERROR; if @error<>0 goto ERR
+delete WorkflowTransition_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete WorkflowTransition from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s WorkflowTransitions purged', 0, 1, @rowcount) with nowait
+
+raiserror('TeamWorkflows', 0, 1) with nowait
+delete TeamWorkflow_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete TeamWorkflow from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s TeamWorkflows purged', 0, 1, @rowcount) with nowait
+
+raiserror('Workflows', 0, 1) with nowait
+delete Workflow_Now from @doomed where doomed=ID
+select @rowcount=@@ROWCOUNT, @error=@@ERROR; if @error<>0 goto ERR
+delete Workflow from @doomed where doomed=ID
+select @error=@@ERROR; if @error<>0 goto ERR
+raiserror('%s Workflows purged', 0, 1, @rowcount) with nowait
 
 raiserror('List', 0, 1) with nowait
 delete List_Now from @doomed where doomed=ID
